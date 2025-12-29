@@ -24,6 +24,10 @@
                         You have been logged out successfully.
                     </div>
 
+                    <div th:if="${param.deleted}" class="alert alert-success" role="alert">
+                        Your account has been deleted successfully.
+                    </div>
+
                     <div th:if="${successMessage}" class="alert alert-success" role="alert">
                         <span th:text="${successMessage}"></span>
                     </div>

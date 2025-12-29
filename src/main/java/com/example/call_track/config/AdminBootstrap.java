@@ -44,8 +44,8 @@ public class AdminBootstrap implements ApplicationRunner {
             return;
         }
 
-        long adminCount = userRepository.countByRole(UserRole.ADMIN);
-        if (adminCount == 0) {
+        long adminCount = userRepository.countByRoleActive(UserRole.ADMIN);
+        if (adminCount == 0 && !userRepository.existsByUsername(defaultUsername)) {
             createDefaultAdmin();
         }
     }

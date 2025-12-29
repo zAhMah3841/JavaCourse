@@ -64,10 +64,21 @@
                                         </select>
                                         <button type="submit" class="btn btn-sm btn-primary ms-2">Update</button>
                                     </form>
+                                    <form th:action="@{'/admin/delete-user/' + ${user.id}}" method="post" class="d-inline ms-2">
+                                        <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+                                    </form>
                                 </td>
                             </tr>
                             </tbody>
                         </table>
+                    </div>
+
+                    <div class="mt-4">
+                        <h4>Test Data Generation</h4>
+                        <p class="text-muted">Generate fake users and call records for testing purposes.</p>
+                        <form th:action="@{/admin/generate-fake-data}" method="post" class="d-inline">
+                            <button type="submit" class="btn btn-warning">Generate Fake Data</button>
+                        </form>
                     </div>
                 </div>
             </div>

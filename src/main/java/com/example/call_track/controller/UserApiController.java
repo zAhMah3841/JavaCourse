@@ -80,25 +80,39 @@ public class UserApiController {
     //TODO: Fix that code
     @PostMapping("/initiate-reset")
     public ResponseEntity<Map<String, String>> initiateReset(@Valid @RequestBody InitiateResetDto dto) {
-        String code = userService.initiatePasswordReset(dto.getUsername());
-        Map<String, String> response = new HashMap<>();
-        response.put("code", code);
-        response.put("message", "This is a test function. In a real application, the code would be sent via email or SMS. Here is your reset code: " + code);
-        return ResponseEntity.ok(response);
+        try {
+            String code = userService.initiatePasswordReset(dto.getUsername());
+            Map<String, String> response = new HashMap<>();
+            response.put("code", code);
+            response.put("message", "This is a test function. In a real application, the code would be sent via email or SMS. Here is your reset code: " + code);
+            return ResponseEntity.ok(response);
+        } catch (IllegalArgumentException e) {
+            Map<String, String> response = new HashMap<>();
+            response.put("message", e.getMessage());
+            return ResponseEntity.badRequest().body(response);
+        }
     }
 
     @PostMapping("/verify-code")
     public ResponseEntity<String> verifyCode(@Valid @RequestBody VerifyCodeDto dto) {
-        if (userService.verifyResetCode(dto.getUsername(), dto.getCode())) {
-            return ResponseEntity.ok("Code verified");
-        } else {
-            return ResponseEntity.badRequest().body("Invalid or expired reset code");
+        try {
+            if (userService.verifyResetCode(dto.getUsername(), dto.getCode())) {
+                return ResponseEntity.ok("Code verified");
+            } else {
+                return ResponseEntity.badRequest().body("Invalid or expired reset code");
+            }
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
 
     @PostMapping("/reset-password")
     public ResponseEntity<String> resetPassword(@Valid @RequestBody ResetPasswordDto dto) {
-        userService.resetPassword(dto);
-        return ResponseEntity.ok("Password reset successfully");
+        try {
+            userService.resetPassword(dto);
+            return ResponseEntity.ok("Password reset successfully");
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
     }
 }

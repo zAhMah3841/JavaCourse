@@ -39,6 +39,7 @@ dependencies {
 	implementation("com.googlecode.libphonenumber:libphonenumber:8.13.31")
 	implementation("org.passay:passay:1.6.6")
 	implementation("org.bouncycastle:bcprov-jdk18on:1.78")
+	implementation("net.datafaker:datafaker:2.4.1")
 }
 
 tasks.withType<Test> {

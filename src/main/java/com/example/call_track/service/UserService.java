@@ -19,6 +19,9 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -33,6 +36,8 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 public class UserService implements UserDetailsService {
+    private static final Logger logger = LoggerFactory.getLogger(UserService.class);
+
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final PhoneNumberService phoneNumberService;
@@ -40,7 +45,7 @@ public class UserService implements UserDetailsService {
 
     @Override
     public UserDetails loadUserByUsername(@NonNull String username) throws UsernameNotFoundException {
-        return userRepository.findByUsername(username)
+        return userRepository.findByUsernameActive(username)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found with username: " + username));
     }
 
@@ -90,8 +95,8 @@ public class UserService implements UserDetailsService {
 
         if (updateDto.getUsername() != null && !updateDto.getUsername().isBlank()) {
             if (!currentUser.getUsername().equals(updateDto.getUsername())
-                && userRepository.existsByUsername(updateDto.getUsername()))
-                    throw new IllegalArgumentException("Username already exists!");
+                    && userRepository.existsByUsername(updateDto.getUsername()))
+                throw new IllegalArgumentException("Username already exists!");
 
             currentUser.setUsername(updateDto.getUsername());
         }
@@ -153,13 +158,13 @@ public class UserService implements UserDetailsService {
             throw new UsernameNotFoundException("User not authenticated");
 
         String username = authentication.getName();
-        return userRepository.findByUsername(username)
+        return userRepository.findByUsernameActive(username)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found with username: " + username));
     }
 
     public String initiatePasswordReset(String username) {
-        User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new UsernameNotFoundException("User not found with username: " + username));
+        User user = userRepository.findByUsernameActive(username)
+                .orElseThrow(() -> new IllegalArgumentException("User not found with username: " + username));
 
         String code = String.format("%06d", new Random().nextInt(999999));
         user.setResetCode(code);
@@ -170,8 +175,8 @@ public class UserService implements UserDetailsService {
     }
 
     public boolean verifyResetCode(String username, String code) {
-        User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new UsernameNotFoundException(
+        User user = userRepository.findByUsernameActive(username)
+                .orElseThrow(() -> new IllegalArgumentException(
                         "User not found with username: " + username));
 
         return  user.getResetCode() != null && user.getResetCode().equals(code) &&
@@ -183,7 +188,7 @@ public class UserService implements UserDetailsService {
         if (!verifyResetCode(resetPasswordDto.getUsername(), resetPasswordDto.getCode()))
             throw new IllegalArgumentException("Invalid or expired reset code");
 
-        User user = userRepository.findByUsername(resetPasswordDto.getUsername()).get();
+        User user = userRepository.findByUsernameActive(resetPasswordDto.getUsername()).get();
         user.setPassword(passwordEncoder.encode(resetPasswordDto.getNewPassword()));
         user.setResetCode(null);
         user.setResetCodeExpiry(null);
@@ -191,8 +196,50 @@ public class UserService implements UserDetailsService {
     }
 
     public List<User> findAll() { return userRepository.findAll(); }
+    public List<User> findAllActive() { return userRepository.findAllActive(); }
     public User save(User user) { return userRepository.save(user); }
 
     public Optional<User> findById(UUID id) { return userRepository.findById(id); }
+    public Optional<User> findByIdActive(UUID id) { return userRepository.findByIdActive(id); }
     public boolean existsByUsername(String username) { return userRepository.existsByUsername(username); }
+
+    @Transactional
+    public void deleteUser(UUID userId) {
+        User currentUser = getCurrentAuthenticatedUser();
+        logger.info("deleteUser called by {} for userId {}", currentUser.getUsername(), userId);
+        if (!currentUser.getRole().equals(UserRole.ADMIN)) {
+            throw new IllegalArgumentException("Only admins can delete users");
+        }
+
+        User userToDelete = userRepository.findByIdActive(userId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+
+        if (userToDelete.getId().equals(currentUser.getId())) {
+            // Allow deleting self only if there are other active admins
+            long activeAdminCount = userRepository.countByRoleActive(UserRole.ADMIN);
+            if (activeAdminCount <= 1) {
+                throw new IllegalArgumentException("Cannot delete the last admin");
+            }
+        }
+
+        softDeleteUser(userToDelete);
+        logger.info("User {} soft deleted", userToDelete.getUsername());
+    }
+
+    @Transactional
+    public void deleteOwnAccount() {
+        User currentUser = getCurrentAuthenticatedUser();
+        logger.info("deleteOwnAccount called by {}", currentUser.getUsername());
+
+        softDeleteUser(currentUser);
+        logger.info("User {} soft deleted own account", currentUser.getUsername());
+    }
+
+    private void softDeleteUser(User user) {
+        user.setDeleted(true);
+        user.setDeletedAt(LocalDateTime.now());
+        userRepository.save(user);
+        // Optionally, soft delete phone numbers or leave them
+        // For now, leave phone numbers as they are associated with the user
+    }
 }

@@ -67,7 +67,7 @@ public class User implements UserDetails {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private UserRole role = UserRole.USER;
+    @Builder.Default private UserRole role = UserRole.USER;
 
     @CreatedDate private LocalDateTime createdAt;
     @LastModifiedDate private LocalDateTime updatedAt;
@@ -86,6 +86,12 @@ public class User implements UserDetails {
     @Builder.Default private boolean credentialsNonExpired = true;
     @Builder.Default private boolean enabled = true;
 
+    @Column(name = "deleted", nullable = false)
+    @Builder.Default private boolean deleted = false;
+
+    @Column(name = "deleted_at")
+    private LocalDateTime deletedAt;
+
     @Override
     @NonNull
     public Collection<? extends GrantedAuthority> getAuthorities() {
@@ -95,5 +101,5 @@ public class User implements UserDetails {
     @Override public boolean isAccountNonExpired() { return accountNonExpired; }
     @Override public boolean isAccountNonLocked() { return accountNonLocked; }
     @Override public boolean isCredentialsNonExpired() { return credentialsNonExpired; }
-    @Override public boolean isEnabled() { return enabled; }
+    @Override public boolean isEnabled() { return enabled && !deleted; }
 }
