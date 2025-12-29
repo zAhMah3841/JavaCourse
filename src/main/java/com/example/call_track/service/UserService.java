@@ -2,6 +2,7 @@ package com.example.call_track.service;
 
 import com.example.call_track.dto.user.PasswordChangeDto;
 import com.example.call_track.dto.user.RegistrationDto;
+import com.example.call_track.dto.user.ResetPasswordDto;
 import com.example.call_track.dto.user.UpdateDto;
 import com.example.call_track.entity.user.User;
 import com.example.call_track.entity.user.UserRole;
@@ -23,8 +24,10 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.Random;
 import java.util.UUID;
 
 @Service
@@ -152,6 +155,39 @@ public class UserService implements UserDetailsService {
         String username = authentication.getName();
         return userRepository.findByUsername(username)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found with username: " + username));
+    }
+
+    public String initiatePasswordReset(String username) {
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found with username: " + username));
+
+        String code = String.format("%06d", new Random().nextInt(999999));
+        user.setResetCode(code);
+        user.setResetCodeExpiry(LocalDateTime.now().plusMinutes(15));
+        userRepository.save(user);
+
+        return code;
+    }
+
+    public boolean verifyResetCode(String username, String code) {
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new UsernameNotFoundException(
+                        "User not found with username: " + username));
+
+        return  user.getResetCode() != null && user.getResetCode().equals(code) &&
+                user.getResetCodeExpiry().isAfter(LocalDateTime.now());
+    }
+
+    @Transactional
+    public void resetPassword(ResetPasswordDto resetPasswordDto) {
+        if (!verifyResetCode(resetPasswordDto.getUsername(), resetPasswordDto.getCode()))
+            throw new IllegalArgumentException("Invalid or expired reset code");
+
+        User user = userRepository.findByUsername(resetPasswordDto.getUsername()).get();
+        user.setPassword(passwordEncoder.encode(resetPasswordDto.getNewPassword()));
+        user.setResetCode(null);
+        user.setResetCodeExpiry(null);
+        userRepository.save(user);
     }
 
     public List<User> findAll() { return userRepository.findAll(); }

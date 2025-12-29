@@ -75,6 +75,12 @@ public class User implements UserDetails {
     @Column(name = "force_password_change", nullable = false)
     @Builder.Default private boolean forcePasswordChange = false;
 
+    @Column(name = "reset_code")
+    private String resetCode;
+
+    @Column(name = "reset_code_expiry")
+    private LocalDateTime resetCodeExpiry;
+
     @Builder.Default private boolean accountNonExpired = true;
     @Builder.Default private boolean accountNonLocked = true;
     @Builder.Default private boolean credentialsNonExpired = true;

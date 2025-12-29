@@ -16,12 +16,11 @@ import java.util.UUID;
 @RequestMapping("/admin")
 @RequiredArgsConstructor
 public class AdminController extends BaseController {
-
     private final UserService userService;
 
     @GetMapping
     public String adminPanel(Model model) {
-        List<User> users = userService.findAll(); // Need to add this method
+        List<User> users = userService.findAll();
         model.addAttribute("users", users);
         return "admin";
     }
