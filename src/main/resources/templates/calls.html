@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Calls</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+<nav class="navbar navbar-expand-lg navbar-light bg-light">
+    <div class="container">
+        <a class="navbar-brand" href="#">CallTrack</a>
+        <div class="navbar-nav ms-auto">
+            <a class="nav-link" href="/dashboard">Dashboard</a>
+            <a class="nav-link" href="/profile">Profile</a>
+            <form th:action="@{/perform_logout}" method="post" class="d-inline">
+                <button type="submit" class="btn btn-outline-danger">Logout</button>
+            </form>
+        </div>
+    </div>
+</nav>
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="text-center">Call History</h3>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                            <tr>
+                                <th>Your Phone</th>
+                                <th>Other Party</th>
+                                <th>Type</th>
+                                <th>Duration</th>
+                                <th>Call Time</th>
+                                <th>Tariff (per minute)</th>
+                                <th>Cost</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <tr th:each="call : ${calls}">
+                                <td th:text="${call.callerPhone.user.id eq user.id ? call.callerPhone.phone : call.calleePhone.phone}"></td>
+                                <td th:text="${call.callerPhone.user.id eq user.id ? call.calleePhone.phone : call.callerPhone.phone}"></td>
+                                <td>
+                                    <span th:class="${call.callerPhone.user.id eq user.id ? 'badge bg-primary' : 'badge bg-success'}"
+                                          th:text="${call.callerPhone.user.id eq user.id ? 'OUTGOING' : 'INCOMING'}"></span>
+                                </td>
+                                <td th:text="${T(java.lang.String).format('%02d:%02d', call.durationSeconds / 60, call.durationSeconds % 60)}"></td>
+                                <td th:text="${#temporals.format(call.callDateTime, 'dd/MM/yyyy HH:mm:ss')}"></td>
+                                <td th:text="${call.pricePerMinute}"></td>
+                                <td th:text="${call.totalCost}"></td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

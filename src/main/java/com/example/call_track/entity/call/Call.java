@@ -1,6 +1,6 @@
 package com.example.call_track.entity.call;
 
-import com.example.call_track.entity.user.User;
+import com.example.call_track.entity.PhoneNumber;
 import jakarta.persistence.*;
 import lombok.*;
 import org.springframework.data.annotation.CreatedDate;
@@ -26,14 +26,14 @@ public class Call {
     private LocalDateTime callDateTime;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "caller_id", nullable = false)
+    @JoinColumn(name = "caller_phone_id", nullable = false)
     @ToString.Exclude
-    private User caller;
+    private PhoneNumber callerPhone;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "callee_id", nullable = false)
+    @JoinColumn(name = "callee_phone_id", nullable = false)
     @ToString.Exclude
-    private User callee;
+    private PhoneNumber calleePhone;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "call_type", nullable = false)
@@ -55,5 +55,4 @@ public class Call {
     @LastModifiedDate
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
-
 }

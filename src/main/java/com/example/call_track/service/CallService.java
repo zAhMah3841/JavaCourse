@@ -1,5 +1,6 @@
 package com.example.call_track.service;
 
+import com.example.call_track.entity.PhoneNumber;
 import com.example.call_track.entity.call.Call;
 import com.example.call_track.entity.call.CallType;
 import com.example.call_track.entity.user.User;
@@ -29,29 +30,36 @@ public class CallService {
         return callRepository.findAll();
     }
 
-    public List<Call> findByCaller(User caller) {
-        return callRepository.findByCaller(caller);
+    public List<Call> findByCallerPhone(PhoneNumber callerPhone) {
+        return callRepository.findByCallerPhone(callerPhone);
     }
 
-    public List<Call> findByCallee(User callee) {
-        return callRepository.findByCallee(callee);
+    public List<Call> findByCalleePhone(PhoneNumber calleePhone) {
+        return callRepository.findByCalleePhone(calleePhone);
     }
 
-    public List<Call> findByCallerOrCallee(User caller, User callee) {
-        return callRepository.findByCallerOrCallee(caller, callee);
+    public List<Call> findByCallerPhoneOrCalleePhone(PhoneNumber callerPhone, PhoneNumber calleePhone) {
+        return callRepository.findByCallerPhoneOrCalleePhone(callerPhone, calleePhone);
+    }
+
+    public List<Call> findByUser(User user) {
+        return callRepository.findByUserWithPhones(user);
     }
 
     public List<Call> findByDateRange(LocalDateTime start, LocalDateTime end) {
         return callRepository.findByCallDateTimeBetween(start, end);
     }
 
-    public Call createCall(User caller, User callee, CallType callType, long durationSeconds, BigDecimal pricePerMinute) {
+    public Call createCall(PhoneNumber callerPhone, PhoneNumber calleePhone, CallType callType, long durationSeconds, BigDecimal pricePerMinute) {
         BigDecimal totalCost = calculateTotalCost(durationSeconds, pricePerMinute);
 
+        // Set call time to a random time in the past hour to spread out calls
+        LocalDateTime callTime = LocalDateTime.now().minusSeconds((long) (Math.random() * 3600));
+
         Call call = Call.builder()
-                .callDateTime(LocalDateTime.now())
-                .caller(caller)
-                .callee(callee)
+                .callDateTime(callTime)
+                .callerPhone(callerPhone)
+                .calleePhone(calleePhone)
                 .callType(callType)
                 .durationSeconds(durationSeconds)
                 .pricePerMinute(pricePerMinute)

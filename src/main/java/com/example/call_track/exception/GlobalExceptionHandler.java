@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.HttpStatus;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -82,6 +83,21 @@ public class GlobalExceptionHandler {
                 .build();
 
         return ResponseEntity.badRequest().body(response);
+    }
+
+    //Метод обрабатывающий исключения типа NoResourceFoundException (например, для favicon.ico)
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<Void> handleNoResourceFoundException(
+            NoResourceFoundException ex, HttpServletRequest request) {
+
+        // Игнорируем ошибки для favicon.ico - это нормальное поведение браузеров
+        if (request.getRequestURI().equals("/favicon.ico")) {
+            return ResponseEntity.notFound().build();
+        }
+
+        // Для других ресурсов логируем как предупреждение
+        LOGGER.warn("Resource not found at {}: {}", request.getRequestURI(), ex.getMessage());
+        return ResponseEntity.notFound().build();
     }
 
     //Метод будет обрабатывать любые другие исключения.

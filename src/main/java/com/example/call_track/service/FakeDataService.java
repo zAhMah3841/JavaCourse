@@ -1,13 +1,17 @@
 package com.example.call_track.service;
 
 import com.example.call_track.dto.user.RegistrationDto;
+import com.example.call_track.entity.PhoneNumber;
 import com.example.call_track.entity.call.CallType;
 import com.example.call_track.entity.user.User;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import net.datafaker.Faker;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import com.google.i18n.phonenumbers.PhoneNumberUtil;
+import com.google.i18n.phonenumbers.Phonenumber;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.nio.file.Files;
@@ -15,6 +19,7 @@ import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.List;
 import java.util.Locale;
+import java.util.Optional;
 import java.util.Random;
 
 @Service
@@ -22,6 +27,7 @@ import java.util.Random;
 public class FakeDataService {
     private final UserService userService;
     private final CallService callService;
+    private final PhoneNumberService phoneNumberService;
 
     @Value("${app.fake-data.max-users:10}")
     private int maxFakeUsers;
@@ -29,7 +35,9 @@ public class FakeDataService {
     @Value("${app.fake-data.credentials-file:fake_users.txt}")
     private String credentialsFilePath;
 
-    private final Faker faker = new Faker(new Locale("en"));
+    private final Faker fakerRu = new Faker(new Locale("ru"));
+    private final Faker fakerEn = new Faker(new Locale("en"));
+    private final PhoneNumberUtil phoneNumberUtil = PhoneNumberUtil.getInstance();
 
     public void generateFakeData() throws IOException {
         List<FakeUserData> fakeUsers = createFakeUserData();
@@ -47,6 +55,10 @@ public class FakeDataService {
                 data.user = user;
             } catch (Exception e) {
                 System.err.println("Failed to register user " + data.username + ": " + e.getMessage());
+                if (e.getCause() != null) {
+                    System.err.println("Cause: " + e.getCause().getMessage());
+                }
+                // Continue with other users even if one fails
             }
         }
 
@@ -67,9 +79,9 @@ public class FakeDataService {
             usedUsernames.add(username);
 
             String password = generateValidPassword(i);
-            String firstName = faker.name().firstName();
-            String lastName = faker.name().lastName();
-            String middleName = faker.name().lastName(); // Using lastName as middle name for simplicity
+            String firstName = fakerRu.name().firstName();
+            String lastName = fakerRu.name().lastName();
+            String middleName = fakerRu.name().lastName(); // Using lastName as middle name for simplicity
 
             String phone;
             do {
@@ -84,7 +96,7 @@ public class FakeDataService {
 
     private String generateUniqueUsername() {
         // Generate unique username using Faker, replace invalid characters with underscores
-        return faker.internet().username().replaceAll("[^a-zA-Z0-9_]", "_");
+        return fakerEn.internet().username().replaceAll("[^a-zA-Z0-9_]", "_");
     }
 
     private String generateValidPassword(int index) {
@@ -93,36 +105,83 @@ public class FakeDataService {
     }
 
     private String generateValidPhoneNumber() {
-        // Generate Belarusian phone numbers in format +37529xxxxxxx or +37533xxxxxxx etc.
-        String[] prefixes = {"29", "33", "44", "25"};
-        String prefix = prefixes[faker.random().nextInt(prefixes.length)];
-        String number = faker.number().digits(7);
-        return "+375" + prefix + number;
+        // Generate valid Belarusian phone numbers
+        // Belarus country code: +375, mobile operators: 29, 33, 44, 25
+        String[] mobileOperators = {"29", "33", "44", "25"};
+        String operator = mobileOperators[fakerEn.random().nextInt(mobileOperators.length)];
+
+        // Try to generate a valid phone number (max 20 attempts)
+        for (int attempt = 0; attempt < 20; attempt++) {
+            try {
+                // Generate 7-digit subscriber number (1000000 to 9999999)
+                int subscriber = fakerEn.random().nextInt(1000000, 9999999);
+                String fullNumber = "+375" + operator + String.format("%07d", subscriber);
+
+                // Parse and validate using libphonenumber
+                Phonenumber.PhoneNumber phoneNumber = phoneNumberUtil.parse(fullNumber, null);
+
+                // Check if it's a valid number and is of a callable type
+                if (phoneNumberUtil.isValidNumber(phoneNumber)) {
+                    PhoneNumberUtil.PhoneNumberType type = phoneNumberUtil.getNumberType(phoneNumber);
+                    // Check if it's a mobile, fixed line, or VoIP number
+                    if (type == PhoneNumberUtil.PhoneNumberType.MOBILE ||
+                            type == PhoneNumberUtil.PhoneNumberType.FIXED_LINE ||
+                            type == PhoneNumberUtil.PhoneNumberType.FIXED_LINE_OR_MOBILE ||
+                            type == PhoneNumberUtil.PhoneNumberType.VOIP) {
+                        return fullNumber;
+                    }
+                }
+            } catch (Exception e) {
+                // Continue to next attempt
+            }
+        }
+
+        // Fallback: use a simple format that should work
+        // Generate a number in format +375[operator][7 digits]
+        int subscriber = fakerEn.random().nextInt(1000000, 9999999);
+        return "+375" + operator + String.format("%07d", subscriber);
     }
 
+    @Transactional
     private void generateFakeCalls(List<FakeUserData> users) {
         Random random = new Random();
         BigDecimal pricePerMinute = BigDecimal.valueOf(0.10); // 0.10 per minute
 
-        // Filter only successfully registered users
-        List<User> registeredUsers = users.stream()
-                .filter(data -> data.user != null)
-                .map(data -> data.user)
-                .toList();
+        // Get all active users to generate calls between them
+        List<User> allUsers = userService.findAllActive();
 
-        for (int i = 0; i < registeredUsers.size(); i++) {
-            for (int j = i + 1; j < registeredUsers.size(); j++) {
-                User caller = registeredUsers.get(i);
-                User callee = registeredUsers.get(j);
+        for (int i = 0; i < allUsers.size(); i++) {
+            for (int j = 0; j < allUsers.size(); j++) {
+                if (i == j) continue;
 
-                // Random calls: some incoming, some outgoing
-                CallType callType = random.nextBoolean() ? CallType.OUTGOING : CallType.INCOMING;
-                long durationSeconds = 60 + random.nextInt(300); // 1-5 minutes
+                User caller = allUsers.get(i);
+                User callee = allUsers.get(j);
 
-                try {
-                    callService.createCall(caller, callee, callType, durationSeconds, pricePerMinute);
-                } catch (Exception e) {
-                    System.err.println("Failed to create call between " + caller.getUsername() + " and " + callee.getUsername() + ": " + e.getMessage());
+                // Get primary phones using service to avoid lazy loading issues
+                Optional<PhoneNumber> callerPhoneOpt = phoneNumberService.getPrimaryPhoneForUser(caller);
+                Optional<PhoneNumber> calleePhoneOpt = phoneNumberService.getPrimaryPhoneForUser(callee);
+
+                if (callerPhoneOpt.isEmpty() || calleePhoneOpt.isEmpty()) {
+                    // Silently skip users without primary phone - this is expected for admin or users without phones
+                    continue;
+                }
+
+                PhoneNumber callerPhone = callerPhoneOpt.get();
+                PhoneNumber calleePhone = calleePhoneOpt.get();
+
+                // Generate 1-2 calls per pair to reduce volume
+                int numCalls = 1 + random.nextInt(2);
+                for (int k = 0; k < numCalls; k++) {
+                    // Random calls: some incoming, some outgoing
+                    CallType callType = random.nextBoolean() ? CallType.OUTGOING : CallType.INCOMING;
+                    long durationSeconds = 60 + random.nextInt(300); // 1-5 minutes
+
+                    try {
+                        callService.createCall(callerPhone, calleePhone, callType, durationSeconds, pricePerMinute);
+                    } catch (Exception e) {
+                        System.err.println("Failed to create call between " + caller.getUsername() + " and " + callee.getUsername() + ": " + e.getMessage());
+                        e.printStackTrace();
+                    }
                 }
             }
         }

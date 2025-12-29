@@ -102,4 +102,13 @@ public class User implements UserDetails {
     @Override public boolean isAccountNonLocked() { return accountNonLocked; }
     @Override public boolean isCredentialsNonExpired() { return credentialsNonExpired; }
     @Override public boolean isEnabled() { return enabled && !deleted; }
+
+    public String getPrimaryPhone() {
+        if (phoneNumbers == null) return "";
+        return phoneNumbers.stream()
+                .filter(PhoneNumber::isPrimary)
+                .findFirst()
+                .map(PhoneNumber::getPhone)
+                .orElse("");
+    }
 }

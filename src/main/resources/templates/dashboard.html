@@ -13,6 +13,7 @@
     <div class="container">
         <a class="navbar-brand" href="#">CallTrack</a>
         <div class="navbar-nav ms-auto">
+            <a class="nav-link" href="/calls">Calls</a>
             <a class="nav-link" href="/profile">Profile</a>
             <a class="nav-link" th:if="${isAdmin}" href="/admin">Admin Panel</a>
             <span class="navbar-text me-3">
@@ -46,6 +47,37 @@
                         <!-- Профиль будет загружен сюда -->
                     </div>
                     <button class="btn btn-primary mt-3" data-bs-toggle="modal" data-bs-target="#editProfileModal">Edit Profile</button>
+
+                    <h5 class="mt-4">Recent Calls</h5>
+                    <div class="table-responsive">
+                        <table class="table table-striped table-sm">
+                            <thead>
+                            <tr>
+                                <th>Other Party</th>
+                                <th>Type</th>
+                                <th>Duration</th>
+                                <th>Time</th>
+                                <th>Cost</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <tr th:each="call : ${recentCalls}">
+                                <td th:text="${call.callerPhone.user.id eq user.id ? call.calleePhone.phone : call.callerPhone.phone}"></td>
+                                <td>
+                                    <span th:class="${call.callerPhone.user.id eq user.id ? 'badge bg-primary' : 'badge bg-success'}"
+                                          th:text="${call.callerPhone.user.id eq user.id ? 'OUTGOING' : 'INCOMING'}"></span>
+                                </td>
+                                <td th:text="${T(java.lang.String).format('%02d:%02d', call.durationSeconds / 60, call.durationSeconds % 60)}"></td>
+                                <td th:text="${#temporals.format(call.callDateTime, 'dd/MM/yyyy HH:mm')}"></td>
+                                <td th:text="${call.totalCost}"></td>
+                            </tr>
+                            <tr th:if="${#lists.isEmpty(recentCalls)}">
+                                <td colspan="5" class="text-center text-muted">No calls yet</td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <a href="/calls" class="btn btn-outline-primary mt-3">View All Calls</a>
                 </div>
             </div>
         </div>
