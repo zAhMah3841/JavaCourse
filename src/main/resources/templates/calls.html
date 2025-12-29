@@ -39,6 +39,7 @@
                                 <th>Call Time</th>
                                 <th>Tariff (per minute)</th>
                                 <th>Cost</th>
+                                <th>Actions</th>
                             </tr>
                             </thead>
                             <tbody>
@@ -53,6 +54,9 @@
                                 <td th:text="${#temporals.format(call.callDateTime, 'dd/MM/yyyy HH:mm:ss')}"></td>
                                 <td th:text="${call.pricePerMinute}"></td>
                                 <td th:text="${call.totalCost}"></td>
+                                <td>
+                                    <button class="btn btn-info btn-sm" th:data-phone="${call.callerPhone.user.id eq user.id ? call.calleePhone.phone : call.callerPhone.phone}" onclick="showUserDetails(this)">Details</button>
+                                </td>
                             </tr>
                             </tbody>
                         </table>
@@ -62,6 +66,51 @@
         </div>
     </div>
 </div>
+
+<!-- User Details Modal -->
+<div class="modal fade" id="userDetailsModal" tabindex="-1" aria-labelledby="userDetailsModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="userDetailsModalLabel">Caller Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p><strong>First Name:</strong> <span id="firstName"></span></p>
+                <p><strong>Last Name:</strong> <span id="lastName"></span></p>
+                <p><strong>Middle Name:</strong> <span id="middleName"></span></p>
+                <p><strong>Phone:</strong> <span id="phone"></span></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    function showUserDetails(button) {
+        const phone = button.getAttribute('data-phone');
+        fetch('/api/calls/user-info?phone=' + encodeURIComponent(phone))
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('User not found');
+                }
+                return response.json();
+            })
+            .then(data => {
+                document.getElementById('firstName').textContent = data.firstName || '';
+                document.getElementById('lastName').textContent = data.lastName || '';
+                document.getElementById('middleName').textContent = data.middleName || '';
+                document.getElementById('phone').textContent = data.phone || '';
+                const modal = new bootstrap.Modal(document.getElementById('userDetailsModal'));
+                modal.show();
+            })
+            .catch(error => {
+                alert('Error: ' + error.message);
+            });
+    }
+</script>
 </body>
 </html>

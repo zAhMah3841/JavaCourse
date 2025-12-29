@@ -72,5 +72,7 @@ public class PhoneNumberService {
         return phoneNumberRepository.findByUserAndIsPrimaryTrue(user);
     }
 
+    public Optional<PhoneNumber> findByPhone(String phone) { return phoneNumberRepository.findByPhone(phone); }
+
     public boolean existsByPhone(String phone) { return phoneNumberRepository.existsByPhone(phone); }
 }
