@@ -26,12 +26,12 @@ public class Call {
     private LocalDateTime callDateTime;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "caller_phone_id", nullable = false)
+    @JoinColumn(name = "caller_phone_id", nullable = true)
     @ToString.Exclude
     private PhoneNumber callerPhone;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "callee_phone_id", nullable = false)
+    @JoinColumn(name = "callee_phone_id", nullable = true)
     @ToString.Exclude
     private PhoneNumber calleePhone;
 

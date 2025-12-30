@@ -88,27 +88,29 @@ public class CallsController extends BaseController {
                 pricePerMinute, minPrice, maxPrice, pageable
         );
 
-        List<CallDto> callDtos = callPage.getContent().stream().map(call -> {
-            boolean isOutgoing = call.getCallerPhone().getUser().getId().equals(currentUser.getId());
-            PhoneNumber otherPhone = isOutgoing ? call.getCalleePhone() : call.getCallerPhone();
-            User otherUser = otherPhone.getUser();
-            String otherPartyName = (otherUser.getFirstName() != null ? otherUser.getFirstName() : "")
-                    + " " + (otherUser.getLastName() != null ? otherUser.getLastName() : "")
-                    + (otherUser.getMiddleName() != null ? " " + otherUser.getMiddleName() : "");
-            String userPhone = isOutgoing ? call.getCallerPhone().getPhone() : call.getCalleePhone().getPhone();
-            String type = isOutgoing ? "OUTGOING" : "INCOMING";
-            String duration = String.format("%02d:%02d", call.getDurationSeconds() / 60, call.getDurationSeconds() % 60);
-            return CallDto.builder()
-                    .otherPartyName(otherPartyName.trim())
-                    .otherPartyPhone(otherPhone.getPhone())
-                    .userPhone(userPhone)
-                    .type(type)
-                    .duration(duration)
-                    .callTime(call.getCallDateTime())
-                    .tariff(call.getPricePerMinute())
-                    .cost(call.getTotalCost())
-                    .build();
-        }).collect(Collectors.toList());
+        List<CallDto> callDtos = callPage.getContent().stream()
+                .filter(call -> call.getCallerPhone() != null && call.getCalleePhone() != null)
+                .map(call -> {
+                    boolean isOutgoing = call.getCallerPhone().getUser().getId().equals(currentUser.getId());
+                    PhoneNumber otherPhone = isOutgoing ? call.getCalleePhone() : call.getCallerPhone();
+                    User otherUser = otherPhone.getUser();
+                    String otherPartyName = (otherUser.getFirstName() != null ? otherUser.getFirstName() : "")
+                            + " " + (otherUser.getLastName() != null ? otherUser.getLastName() : "")
+                            + (otherUser.getMiddleName() != null ? " " + otherUser.getMiddleName() : "");
+                    String userPhone = isOutgoing ? call.getCallerPhone().getPhone() : call.getCalleePhone().getPhone();
+                    String type = isOutgoing ? "OUTGOING" : "INCOMING";
+                    String duration = String.format("%02d:%02d", call.getDurationSeconds() / 60, call.getDurationSeconds() % 60);
+                    return CallDto.builder()
+                            .otherPartyName(otherPartyName.trim())
+                            .otherPartyPhone(otherPhone.getPhone())
+                            .userPhone(userPhone)
+                            .type(type)
+                            .duration(duration)
+                            .callTime(call.getCallDateTime())
+                            .tariff(call.getPricePerMinute())
+                            .cost(call.getTotalCost())
+                            .build();
+                }).collect(Collectors.toList());
 
         CallPageDto response = CallPageDto.builder()
                 .calls(callDtos)

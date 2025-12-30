@@ -1009,7 +1009,7 @@
         };
 
         // Add my numbers filter
-        const selectedNumbers = Array.from(document.querySelectorAll('.my-number-checkbox:checked')).map(cb => cb.value.replace(/\D/g, ""));
+        const selectedNumbers = Array.from(document.querySelectorAll('.my-number-checkbox:checked')).map(cb => cb.value);
         if (selectedNumbers.length > 0) {
             currentFilters.myNumbers = selectedNumbers.join(',');
         }
@@ -1073,7 +1073,7 @@
                     const label = document.createElement('label');
                     label.className = 'flex items-center gap-2 cursor-pointer';
                     label.innerHTML = `
-                        <input type="checkbox" value="${num.phone}" class="my-number-checkbox">
+                        <input type="checkbox" value="${num.phone}" class="my-number-checkbox" ${num.isPrimary ? 'checked' : ''}>
                         <span class="text-sm">${num.phone}${num.isPrimary ? ' (основной)' : ''}</span>
                     `;
                     myNumbersDiv.appendChild(label);
@@ -1083,6 +1083,11 @@
                 document.querySelectorAll('.my-number-checkbox').forEach(cb => {
                     cb.addEventListener('change', applyFilters);
                 });
+
+                // Apply filters with default selected numbers
+                if (isInitialLoad) {
+                    applyFilters();
+                }
             }
         } catch (error) {
             console.error('Error loading numbers:', error);
@@ -1399,26 +1404,20 @@
                                 </div>
                             </div>
                             <div class="flex items-center gap-2">
-                                ${!phone.isPrimary ? `<button class="px-3 py-1 text-sm bg-primary-600 text-white rounded hover:bg-primary-700 transition set-primary-btn" data-id="${phone.id}">Сделать основным</button>` : ''}
-                                <button class="px-3 py-1 text-sm bg-red-600 text-white rounded hover:bg-red-700 transition delete-phone-btn" data-id="${phone.id}">Удалить</button>
+                                ${!phone.isPrimary ? `<button type="button" class="px-3 py-1 text-sm bg-primary-600 text-white rounded hover:bg-primary-700 transition set-primary-btn" data-id="${phone.id}">Сделать основным</button>` : ''}
+                                <button type="button" class="px-3 py-1 text-sm bg-red-600 text-white rounded hover:bg-red-700 transition delete-phone-btn" data-id="${phone.id}">Удалить</button>
                             </div>
                         `;
                         listDiv.appendChild(phoneDiv);
-                    });
 
-                    // Add event listeners to new buttons
-                    document.querySelectorAll('.set-primary-btn').forEach(btn => {
-                        btn.addEventListener('click', function() {
-                            const phoneId = this.getAttribute('data-id');
-                            setPrimaryPhone(phoneId);
-                        });
-                    });
+                        // Add event listeners to buttons
+                        const setPrimaryBtn = phoneDiv.querySelector('.set-primary-btn');
+                        if (setPrimaryBtn) {
+                            setPrimaryBtn.addEventListener('click', () => setPrimaryPhone(phone.id));
+                        }
 
-                    document.querySelectorAll('.delete-phone-btn').forEach(btn => {
-                        btn.addEventListener('click', function() {
-                            const phoneId = this.getAttribute('data-id');
-                            deletePhone(phoneId);
-                        });
+                        const deleteBtn = phoneDiv.querySelector('.delete-phone-btn');
+                        deleteBtn.addEventListener('click', () => deletePhone(phone.id));
                     });
                 } else {
                     console.error('Failed to load phone numbers');
@@ -1464,7 +1463,11 @@
                     loadUserPhoneNumbers();
                     loadMyNumbers(); // Update the filter checkboxes
                 } else {
-                    alert('Ошибка удаления номера телефона');
+                    if (response.status === 400) {
+                        response.text().then(errorMessage => alert('Ошибка: ' + errorMessage));
+                    } else {
+                        alert('Ошибка удаления номера телефона');
+                    }
                 }
             } catch (error) {
                 console.error('Error deleting phone:', error);

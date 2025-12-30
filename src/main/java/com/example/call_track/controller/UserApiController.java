@@ -75,9 +75,13 @@ public class UserApiController {
 
     @DeleteMapping("/phone-numbers/{id}")
     public ResponseEntity<String> removePhoneNumber(@PathVariable UUID id) {
-        User user = userService.getCurrentAuthenticatedUser();
-        phoneNumberService.removePhoneNumber(user, id);
-        return ResponseEntity.ok("Phone number removed");
+        try {
+            User user = userService.getCurrentAuthenticatedUser();
+            phoneNumberService.removePhoneNumber(user, id);
+            return ResponseEntity.ok("Phone number removed");
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
     }
 
     @PostMapping("/change-password")

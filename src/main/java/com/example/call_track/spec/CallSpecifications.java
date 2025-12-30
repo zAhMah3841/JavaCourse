@@ -62,24 +62,25 @@ public class CallSpecifications {
                 predicates.add(cb.or(otherPartyMatchCaller, otherPartyMatchCallee));
             }
 
-            // Фильтр по номерам (userPhone среди выбранных номеров)
+            // Фильтр по номерам (показывать только входящие звонки на выбранные номера пользователя)
             if (myNumbers != null && !myNumbers.isBlank()) {
                 List<String> nums = Arrays.stream(myNumbers.split(","))
                         .map(String::trim)
                         .filter(s -> !s.isEmpty())
                         .collect(Collectors.toList());
                 if (!nums.isEmpty()) {
-                    predicates.add(cb.or(
-                            callerPhone.get("phone").in(nums),
-                            calleePhone.get("phone").in(nums)
-                    ));
+                    // Показывать только входящие звонки на выбранные номера
+                    Predicate userIsCallee = cb.equal(calleeUser, user);
+                    Predicate calleeInSelected = calleePhone.get("phone").in(nums);
+                    predicates.add(cb.and(userIsCallee, calleeInSelected));
                 }
             }
 
             // Фильтр по телефону оппонента (абонента)
             if (phone != null && !phone.isBlank()) {
-                Predicate callerIsOther = cb.and(cb.notEqual(callerUser, user), cb.equal(callerPhone.get("phone"), phone));
-                Predicate calleeIsOther = cb.and(cb.notEqual(calleeUser, user), cb.equal(calleePhone.get("phone"), phone));
+                String likePhone = "%" + phone.trim() + "%";
+                Predicate callerIsOther = cb.and(cb.notEqual(callerUser, user), cb.like(callerPhone.get("phone"), likePhone));
+                Predicate calleeIsOther = cb.and(cb.notEqual(calleeUser, user), cb.like(calleePhone.get("phone"), likePhone));
                 predicates.add(cb.or(callerIsOther, calleeIsOther));
             }
 
