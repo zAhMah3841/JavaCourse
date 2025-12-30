@@ -33,6 +33,7 @@ public class ProfileController {
         model.addAttribute("userUpdateDto", updateDto);
         model.addAttribute("passwordChangeDto", new PasswordChangeDto());
         model.addAttribute("user", user);
+        model.addAttribute("timestamp", System.currentTimeMillis());
         return "profile";
     }
 

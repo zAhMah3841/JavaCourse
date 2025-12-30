@@ -6,6 +6,8 @@ import com.example.call_track.entity.call.CallType;
 import com.example.call_track.entity.user.User;
 import com.example.call_track.repository.CallRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -21,6 +23,7 @@ public class CallService {
     public Call saveCall(Call call) {
         return callRepository.save(call);
     }
+
 
     public Optional<Call> findById(UUID id) {
         return callRepository.findById(id);
@@ -42,8 +45,13 @@ public class CallService {
         return callRepository.findByCallerPhoneOrCalleePhone(callerPhone, calleePhone);
     }
 
-    public List<Call> findByUser(User user) {
-        return callRepository.findByUserWithPhones(user);
+    public Page<Call> findByUser(User user, Pageable pageable) {
+        return callRepository.findByUserWithPhones(user, pageable);
+    }
+
+    public Page<Call> findByUserWithFilters(User user, LocalDateTime startDate, LocalDateTime endDate,
+                                            String callType, String phone, BigDecimal minCost, BigDecimal maxCost, Pageable pageable) {
+        return callRepository.findByUserWithFilters(user, startDate, endDate, callType, phone, minCost, maxCost, pageable);
     }
 
     public List<Call> findByDateRange(LocalDateTime start, LocalDateTime end) {

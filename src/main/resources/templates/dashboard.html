@@ -1,159 +1,414 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html xmlns:th="http://www.thymeleaf.org" lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="_csrf" th:content="${_csrf.token}" />
     <meta name="_csrf_header" th:content="${_csrf.headerName}" />
-    <title>Dashboard</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <title>Менеджер звонков | Личный кабинет</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            200: '#bae6fd',
+                            300: '#7dd3fc',
+                            400: '#38bdf8',
+                            500: '#0ea5e9',
+                            600: '#0284c7',
+                            700: '#0369a1',
+                            800: '#075985',
+                            900: '#0c4a6e',
+                        },
+                        secondary: {
+                            50: '#f8fafc',
+                            100: '#f1f5f9',
+                            200: '#e2e8f0',
+                            300: '#cbd5e1',
+                            400: '#94a3b8',
+                            500: '#64748b',
+                            600: '#475569',
+                            700: '#334155',
+                            800: '#1e293b',
+                            900: '#0f172a',
+                        },
+                        accent: {
+                            500: '#8b5cf6',
+                            600: '#7c3aed',
+                        }
+                    },
+                    boxShadow: {
+                        'soft': '0 2px 12px rgba(0,0,0,0.04)',
+                        'card': '0 4px 20px rgba(0,0,0,0.08)',
+                        'hover': '0 8px 30px rgba(0,0,0,0.12)',
+                    },
+                    borderRadius: {
+                        'xl': '1rem',
+                        '2xl': '1.5rem'
+                    },
+                    animation: {
+                        'fade-in': 'fadeIn 0.3s ease-in-out',
+                        'slide-in': 'slideIn 0.3s ease-out',
+                        'pulse-slow': 'pulse 3s infinite',
+                    },
+                    keyframes: {
+                        fadeIn: {
+                            '0%': { opacity: '0' },
+                            '100%': { opacity: '1' },
+                        },
+                        slideIn: {
+                            '0%': { transform: 'translateY(-10px)', opacity: '0' },
+                            '100%': { transform: 'translateY(0)', opacity: '1' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+            border-radius: 4px;
+        }
+
+        .dark ::-webkit-scrollbar-track {
+            background: #1e293b;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+
+        .dark ::-webkit-scrollbar-thumb {
+            background: #475569;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+
+        .dark ::-webkit-scrollbar-thumb:hover {
+            background: #64748b;
+        }
+
+        /* Smooth transitions */
+        * {
+            transition: background-color 0.2s ease, border-color 0.2s ease;
+        }
+
+        /* Avatar styles */
+        .avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        .avatar-large {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        .avatar-fallback {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background-color: #0ea5e9;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 16px;
+        }
+
+        .avatar-fallback-large {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            background-color: #0ea5e9;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 24px;
+        }
+
+        /* Status indicators */
+        .status-incoming {
+            background-color: rgba(34, 197, 94, 0.1);
+            color: #16a34a;
+        }
+
+        .dark .status-incoming {
+            background-color: rgba(34, 197, 94, 0.2);
+        }
+
+        .status-outgoing {
+            background-color: rgba(59, 130, 246, 0.1);
+            color: #2563eb;
+        }
+
+        .dark .status-outgoing {
+            background-color: rgba(59, 130, 246, 0.2);
+        }
+    </style>
 </head>
-<body>
-<nav class="navbar navbar-expand-lg navbar-light bg-light">
-    <div class="container">
-        <a class="navbar-brand" href="#">CallTrack</a>
-        <div class="navbar-nav ms-auto">
-            <a class="nav-link" href="/calls">Calls</a>
-            <a class="nav-link" href="/profile">Profile</a>
-            <a class="nav-link" th:if="${isAdmin}" href="/admin">Admin Panel</a>
-            <span class="navbar-text me-3">
-                Welcome, <span th:text="${username}"></span>
-            </span>
-            <form th:action="@{/perform_logout}" method="post">
-                <button type="submit" class="btn btn-outline-danger">Logout</button>
-            </form>
-        </div>
-    </div>
-</nav>
 
-<div class="container mt-4">
-    <div class="row">
-        <div class="col-md-12">
-            <div class="card">
-                <div class="card-header">
-                    <h4>Dashboard</h4>
+<body class="bg-secondary-50 dark:bg-secondary-900 text-secondary-800 dark:text-secondary-100">
+
+<!-- HEADER -->
+<header class="bg-white dark:bg-secondary-800 shadow-soft p-4 border-b border-secondary-200 dark:border-secondary-700">
+    <div class="flex justify-between items-center">
+        <div class="flex items-center gap-6">
+            <h1 class="text-xl font-bold">Менеджер звонков</h1>
+            <nav class="hidden md:flex items-center gap-4">
+            </nav>
+        </div>
+        <div class="flex items-center gap-4">
+            <!-- Profile -->
+            <div class="flex items-center gap-3 cursor-pointer relative" id="profile-trigger">
+                <div>
+                    <img th:if="${user.avatarPath != null}" th:src="@{'/uploads/' + ${user.avatarPath} + '?t=' + ${timestamp}}" alt="Avatar" class="avatar">
+                    <div th:if="${user.avatarPath == null}" class="avatar-fallback">
+                        <span th:text="${user.firstName != null ? user.firstName.substring(0,1).toUpperCase() + (user.lastName != null ? user.lastName.substring(0,1).toUpperCase() : '') : user.username.substring(0,2).toUpperCase()}"></span>
+                    </div>
                 </div>
-                <div class="card-body">
-                    <p>Welcome to your dashboard. You have successfully logged in.</p>
+                <span class="font-medium hidden md:inline" th:text="${user.firstName + ' ' + user.lastName}"></span>
+                <i class="fas fa-chevron-down text-secondary-400"></i>
+            </div>
+        </div>
+    </div>
+</header>
 
-                    <h5>Phone Numbers</h5>
-                    <div id="phoneNumbersList">
-                        <!-- Номера будут загружены сюда -->
-                    </div>
-                    <button class="btn btn-primary mt-3" data-bs-toggle="modal" data-bs-target="#addPhoneModal">Add Phone Number</button>
+<!-- Profile Menu -->
+<div id="profile-menu" class="absolute right-4 top-20 bg-white dark:bg-secondary-800 shadow-card rounded-xl p-2 z-50 border border-secondary-200 dark:border-secondary-700 hidden w-48 animate-fade-in">
+    <button class="w-full text-left px-3 py-2 rounded-lg hover:bg-secondary-50 dark:hover:bg-secondary-700/50 flex items-center gap-3 transition" id="edit-profile-btn">
+        <i class="fas fa-user-edit text-secondary-500 w-4"></i>
+        <span class="text-sm">Редактировать профиль</span>
+    </button>
+    <form th:action="@{/perform_logout}" method="post">
+        <button type="submit" class="w-full text-left px-3 py-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600 dark:text-red-400 flex items-center gap-3 transition">
+            <i class="fas fa-sign-out-alt w-4"></i>
+            <span class="text-sm">Выход</span>
+        </button>
+    </form>
+</div>
 
-                    <h5 class="mt-4">Profile</h5>
-                    <div id="profileInfo">
-                        <!-- Профиль будет загружен сюда -->
-                    </div>
-                    <button class="btn btn-primary mt-3" data-bs-toggle="modal" data-bs-target="#editProfileModal">Edit Profile</button>
+<div class="container mx-auto px-4 py-8">
+    <div class="bg-white dark:bg-secondary-800 shadow-card rounded-xl overflow-hidden animate-fade-in">
+        <div class="p-6 border-b border-secondary-200 dark:border-secondary-700">
+            <h2 class="text-2xl font-bold">История звонков</h2>
+        </div>
 
-                    <h5 class="mt-4">Recent Calls</h5>
-                    <div class="table-responsive">
-                        <table class="table table-striped table-sm">
-                            <thead>
-                            <tr>
-                                <th>Other Party</th>
-                                <th>Type</th>
-                                <th>Duration</th>
-                                <th>Time</th>
-                                <th>Cost</th>
-                            </tr>
-                            </thead>
-                            <tbody>
-                            <tr th:each="call : ${recentCalls}">
-                                <td th:text="${call.callerPhone.user.id eq user.id ? call.calleePhone.phone : call.callerPhone.phone}"></td>
-                                <td>
-                                    <span th:class="${call.callerPhone.user.id eq user.id ? 'badge bg-primary' : 'badge bg-success'}"
-                                          th:text="${call.callerPhone.user.id eq user.id ? 'OUTGOING' : 'INCOMING'}"></span>
-                                </td>
-                                <td th:text="${T(java.lang.String).format('%02d:%02d', call.durationSeconds / 60, call.durationSeconds % 60)}"></td>
-                                <td th:text="${#temporals.format(call.callDateTime, 'dd/MM/yyyy HH:mm')}"></td>
-                                <td th:text="${call.totalCost}"></td>
-                            </tr>
-                            <tr th:if="${#lists.isEmpty(recentCalls)}">
-                                <td colspan="5" class="text-center text-muted">No calls yet</td>
-                            </tr>
-                            </tbody>
-                        </table>
+
+        <div class="p-6">
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm" id="calls-table">
+                    <thead>
+                    <tr class="border-b border-secondary-200 dark:border-secondary-700 text-xs uppercase text-secondary-500 dark:text-secondary-400">
+                        <th class="py-4 px-4 font-medium text-left">Ваш телефон</th>
+                        <th class="py-4 px-4 font-medium text-left">Абонент</th>
+                        <th class="py-4 px-4 font-medium text-left">Телефон абонента</th>
+                        <th class="py-4 px-4 font-medium text-left">Тип</th>
+                        <th class="py-4 px-4 font-medium text-left">Длительность</th>
+                        <th class="py-4 px-4 font-medium text-left">Время звонка</th>
+                        <th class="py-4 px-4 font-medium text-left">Тариф (мин)</th>
+                        <th class="py-4 px-4 font-medium text-left">Стоимость</th>
+                        <th class="py-4 px-4 font-medium text-left">Действия</th>
+                    </tr>
+                    </thead>
+                    <tbody id="calls-tbody" class="divide-y divide-secondary-100 dark:divide-secondary-700">
+                    <!-- Data will be loaded here -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- User Details Modal -->
+<div id="userDetailsModal" class="fixed inset-0 bg-black/50 hidden z-50">
+    <div class="flex items-center justify-center min-h-screen p-4">
+        <div class="bg-white dark:bg-secondary-800 rounded-xl shadow-card max-w-md w-full max-h-[90vh] overflow-y-auto">
+            <div class="p-6">
+                <h3 class="text-lg font-bold mb-4">Детали абонента</h3>
+                <div class="text-center mb-6">
+                    <img id="avatar" src="" alt="Avatar" class="avatar-large mx-auto border-4 border-primary-100 dark:border-primary-800">
+                </div>
+                <div class="space-y-3">
+                    <div class="flex justify-between">
+                        <span class="font-medium">Имя:</span>
+                        <span id="firstName"></span>
                     </div>
-                    <a href="/calls" class="btn btn-outline-primary mt-3">View All Calls</a>
+                    <div class="flex justify-between">
+                        <span class="font-medium">Фамилия:</span>
+                        <span id="lastName"></span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="font-medium">Отчество:</span>
+                        <span id="middleName"></span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="font-medium">Телефон:</span>
+                        <span id="phone"></span>
+                    </div>
+                    <div>
+                        <span class="font-medium">Дополнительная информация:</span>
+                        <p id="publicContactInfo" class="mt-1 text-sm text-secondary-600 dark:text-secondary-400"></p>
+                    </div>
+                </div>
+                <div class="flex justify-end mt-6">
+                    <button type="button" id="closeUserDetails" class="px-4 py-2 bg-secondary-300 dark:bg-secondary-600 text-secondary-800 dark:text-secondary-100 rounded-lg hover:bg-secondary-400 dark:hover:bg-secondary-500 transition">Закрыть</button>
                 </div>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Modal for adding phone number -->
-<div class="modal fade" id="addPhoneModal" tabindex="-1" aria-labelledby="addPhoneModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="addPhoneModalLabel">Add Phone Number</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <form id="addPhoneForm">
-                    <div class="mb-3">
-                        <label for="newPhone" class="form-label">Phone Number</label>
-                        <input type="tel" class="form-control" id="newPhone" required>
+<!-- Profile Edit Modal -->
+<div id="profileModal" class="fixed inset-0 bg-black/50 hidden z-50">
+    <div class="flex items-center justify-center min-h-screen p-4">
+        <div class="bg-white dark:bg-secondary-800 rounded-xl shadow-card max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div class="p-6">
+                <div class="flex items-center justify-between mb-6">
+                    <h3 class="text-xl font-bold">Редактирование профиля</h3>
+                    <button id="closeProfileModal" class="text-secondary-400 hover:text-secondary-600 text-2xl">&times;</button>
+                </div>
+
+                <!-- Tabs -->
+                <div class="flex border-b border-secondary-200 dark:border-secondary-700 mb-6">
+                    <button id="profileTab" class="px-4 py-2 text-sm font-medium border-b-2 border-primary-500 text-primary-600 dark:text-primary-400">Информация профиля</button>
+                    <button id="passwordTab" class="px-4 py-2 text-sm font-medium text-secondary-500 hover:text-secondary-700 dark:hover:text-secondary-300">Смена пароля</button>
+                    <button id="deleteTab" class="px-4 py-2 text-sm font-medium text-secondary-500 hover:text-secondary-700 dark:hover:text-secondary-300">Удаление аккаунта</button>
+                </div>
+
+                <!-- Profile Info Tab -->
+                <div id="profileTabContent" class="space-y-6">
+                    <form id="profileForm" class="space-y-6">
+                        <!-- Avatar Section -->
+                        <div class="flex flex-col items-center mb-6">
+                            <label class="block text-sm font-medium mb-3">Фото профиля</label>
+                            <div id="avatarPreview" class="avatar-fallback-large cursor-pointer hover:opacity-80 transition mb-3">
+                                <span th:text="${user.firstName != null ? user.firstName.substring(0,1).toUpperCase() + (user.lastName != null ? user.lastName.substring(0,1).toUpperCase() : '') : user.username.substring(0,2).toUpperCase()}"></span>
+                            </div>
+                            <button type="button" id="changeAvatar" class="px-4 py-2 text-sm bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition">Изменить фото</button>
+                            <input type="file" id="avatarInput" accept="image/*" class="hidden">
+                        </div>
+
+                        <!-- Basic Info -->
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium mb-1">Логин</label>
+                                <input type="text" id="editUsername" class="w-full px-3 py-2 rounded-lg border border-secondary-300 dark:border-secondary-600 bg-secondary-50 dark:bg-secondary-900 focus:ring-2 focus:ring-primary-500 transition text-sm" required>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                <div>
+                                    <label class="block text-sm font-medium mb-1">Фамилия</label>
+                                    <input type="text" id="editLastName" class="w-full px-3 py-2 rounded-lg border border-secondary-300 dark:border-secondary-600 bg-secondary-50 dark:bg-secondary-900 focus:ring-2 focus:ring-primary-500 transition text-sm" required>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium mb-1">Имя</label>
+                                    <input type="text" id="editFirstName" class="w-full px-3 py-2 rounded-lg border border-secondary-300 dark:border-secondary-600 bg-secondary-50 dark:bg-secondary-900 focus:ring-2 focus:ring-primary-500 transition text-sm" required>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium mb-1">Отчество</label>
+                                    <input type="text" id="editMiddleName" class="w-full px-3 py-2 rounded-lg border border-secondary-300 dark:border-secondary-600 bg-secondary-50 dark:bg-secondary-900 focus:ring-2 focus:ring-primary-500 transition text-sm">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Public Contact Info -->
+                        <div>
+                            <label class="block text-sm font-medium mb-2">Публичная информация</label>
+                            <textarea id="editPublicContactInfo" rows="2" class="w-full px-3 py-2 rounded-lg border border-secondary-300 dark:border-secondary-600 bg-secondary-50 dark:bg-secondary-900 focus:ring-2 focus:ring-primary-500 transition text-sm" placeholder="Информация, которую увидят другие пользователи при просмотре ваших данных"></textarea>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="flex gap-3 pt-6 border-t border-secondary-200 dark:border-secondary-700">
+                            <button type="submit" class="flex-1 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition font-medium">Сохранить изменения</button>
+                            <button type="button" id="cancelProfile" class="px-6 py-3 bg-secondary-300 dark:bg-secondary-600 text-secondary-800 dark:text-secondary-100 rounded-lg hover:bg-secondary-400 dark:hover:bg-secondary-500 transition">Отмена</button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Password Tab -->
+                <div id="passwordTabContent" class="space-y-6 hidden">
+                    <form id="passwordForm" class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium mb-2">Текущий пароль</label>
+                            <input type="password" id="currentPassword" class="w-full px-3 py-2 rounded-lg border border-secondary-300 dark:border-secondary-600 bg-secondary-50 dark:bg-secondary-900 focus:ring-2 focus:ring-primary-500 transition text-sm" required>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium mb-2">Новый пароль</label>
+                            <input type="password" id="newPasswordField" class="w-full px-3 py-2 rounded-lg border border-secondary-300 dark:border-secondary-600 bg-secondary-50 dark:bg-secondary-900 focus:ring-2 focus:ring-primary-500 transition text-sm" required>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium mb-2">Подтверждение нового пароля</label>
+                            <input type="password" id="confirmNewPassword" class="w-full px-3 py-2 rounded-lg border border-secondary-300 dark:border-secondary-600 bg-secondary-50 dark:bg-secondary-900 focus:ring-2 focus:ring-primary-500 transition text-sm" required>
+                        </div>
+
+                        <div class="flex gap-3 pt-4 border-t border-secondary-200 dark:border-secondary-700">
+                            <button type="submit" class="flex-1 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition font-medium">Сменить пароль</button>
+                            <button type="button" id="cancelPassword" class="px-6 py-3 bg-secondary-300 dark:bg-secondary-600 text-secondary-800 dark:text-secondary-100 rounded-lg hover:bg-secondary-400 dark:hover:bg-secondary-500 transition">Отмена</button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Delete Account Tab -->
+                <div id="deleteTabContent" class="space-y-6 hidden">
+                    <div class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-6">
+                        <h3 class="text-lg font-semibold text-red-800 dark:text-red-200 mb-4">Удаление аккаунта</h3>
+                        <div class="space-y-4 text-sm text-red-700 dark:text-red-300">
+                            <p><strong>Что произойдет при удалении аккаунта:</strong></p>
+                            <ul class="list-disc list-inside space-y-2 ml-4">
+                                <li>Ваш аккаунт будет полностью удален из системы</li>
+                                <li>Все ваши личные данные будут удалены без возможности восстановления</li>
+                                <li>История звонков будет анонимизирована - ваши данные не будут видны другим пользователям</li>
+                                <li>Вы потеряете доступ ко всем функциям системы</li>
+                                <li>Это действие нельзя отменить</li>
+                            </ul>
+                            <p class="mt-4"><strong>Ваши данные не будут видны другим пользователям после удаления.</strong> История звонков будет сохранена в анонимизированном виде для статистики.</p>
+                        </div>
+                        <div class="mt-6 pt-4 border-t border-red-200 dark:border-red-800">
+                            <button type="button" id="deleteAccountBtn" class="w-full py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition font-medium">Подтвердить удаление аккаунта</button>
+                        </div>
                     </div>
-                    <div class="form-check">
-                        <input class="form-check-input" type="checkbox" id="isPrimary">
-                        <label class="form-check-label" for="isPrimary">
-                            Set as primary
-                        </label>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary" id="addPhoneBtn">Add</button>
+                </div>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Modal for editing profile -->
-<div class="modal fade" id="editProfileModal" tabindex="-1" aria-labelledby="editProfileModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="editProfileModalLabel">Edit Profile</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <form id="editProfileForm">
-                    <div class="mb-3">
-                        <label for="editUsername" class="form-label">Username</label>
-                        <input type="text" class="form-control" id="editUsername" required>
-                    </div>
-                    <div class="mb-3">
-                        <label for="editFirstName" class="form-label">First Name</label>
-                        <input type="text" class="form-control" id="editFirstName" required>
-                    </div>
-                    <div class="mb-3">
-                        <label for="editLastName" class="form-label">Last Name</label>
-                        <input type="text" class="form-control" id="editLastName" required>
-                    </div>
-                    <div class="mb-3">
-                        <label for="editMiddleName" class="form-label">Middle Name</label>
-                        <input type="text" class="form-control" id="editMiddleName">
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary" id="updateProfileBtn">Update</button>
-            </div>
-        </div>
-    </div>
-</div>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
     const csrfToken = document.querySelector('meta[name="_csrf"]') ? document.querySelector('meta[name="_csrf"]').getAttribute('content') : null;
     const csrfHeader = document.querySelector('meta[name="_csrf_header"]') ? document.querySelector('meta[name="_csrf_header"]').getAttribute('content') : null;
+
+    let currentPage = 0;
 
     function getHeaders() {
         const headers = { 'Content-Type': 'application/json' };
@@ -163,151 +418,429 @@
         return headers;
     }
 
-    function loadPhoneNumbers() {
-        fetch('/api/user/phone-numbers', {
-            method: 'GET',
-            headers: getHeaders()
-        })
-            .then(response => response.json())
-            .then(data => {
-                const list = document.getElementById('phoneNumbersList');
-                list.innerHTML = '';
-                data.forEach(phone => {
-                    const div = document.createElement('div');
-                    div.className = 'd-flex justify-content-between align-items-center mb-2';
-                    div.innerHTML = `
-                    <span>${phone.phone} ${phone.isPrimary ? '(Primary)' : ''}</span>
-                    <div>
-                        ${!phone.isPrimary ? `<button class="btn btn-sm btn-outline-primary me-2" onclick="setPrimary('${phone.id}')">Set Primary</button>` : ''}
-                        <button class="btn btn-sm btn-outline-danger" onclick="removePhone('${phone.id}')">Remove</button>
-                    </div>
-                `;
-                    list.appendChild(div);
-                });
-            })
-            .catch(error => console.error('Error loading phone numbers:', error));
-    }
+    // Load calls data
+    async function loadCalls(page = 0) {
+        try {
+            const params = new URLSearchParams();
+            params.append('page', page);
+            params.append('size', 10);
 
-    function loadProfile() {
-        fetch('/api/user/profile', {
-            method: 'GET',
-            headers: getHeaders()
-        })
-            .then(response => response.json())
-            .then(data => {
-                const info = document.getElementById('profileInfo');
-                info.innerHTML = `
-                    <p><strong>Username:</strong> ${data.username}</p>
-                    <p><strong>First Name:</strong> ${data.firstName}</p>
-                    <p><strong>Last Name:</strong> ${data.lastName}</p>
-                    <p><strong>Middle Name:</strong> ${data.middleName || ''}</p>
-                `;
-                // Fill the edit form
-                document.getElementById('editUsername').value = data.username;
-                document.getElementById('editFirstName').value = data.firstName;
-                document.getElementById('editLastName').value = data.lastName;
-                document.getElementById('editMiddleName').value = data.middleName || '';
-            })
-            .catch(error => console.error('Error loading profile:', error));
-    }
+            const url = '/api/calls?' + params.toString();
 
-    function addPhone() {
-        const phone = document.getElementById('newPhone').value;
-        const isPrimary = document.getElementById('isPrimary').checked;
-        fetch('/api/user/phone-numbers', {
-            method: 'POST',
-            headers: getHeaders(),
-            body: JSON.stringify({ phone: phone, isPrimary: isPrimary })
-        })
-            .then(response => {
-                if (response.ok) {
-                    loadPhoneNumbers();
-                    document.getElementById('addPhoneForm').reset();
-                    const modal = bootstrap.Modal.getInstance(document.getElementById('addPhoneModal'));
-                    modal.hide();
-                } else {
-                    response.json().then(data => {
-                        alert(data.errors ? data.errors.join(', ') : 'Error adding phone number');
-                    }).catch(() => {
-                        alert('Error adding phone number');
-                    });
-                }
-            })
-            .catch(error => console.error('Error:', error));
-    }
-
-    function setPrimary(id) {
-        fetch(`/api/user/phone-numbers/${id}/primary`, {
-            method: 'PUT',
-            headers: getHeaders()
-        })
-            .then(response => {
-                if (response.ok) {
-                    loadPhoneNumbers();
-                } else {
-                    response.json().then(data => {
-                        alert(data.errors ? data.errors.join(', ') : 'Error setting primary');
-                    }).catch(() => {
-                        alert('Error setting primary');
-                    });
-                }
-            })
-            .catch(error => console.error('Error:', error));
-    }
-
-    function removePhone(id) {
-        if (confirm('Are you sure you want to remove this phone number?')) {
-            fetch(`/api/user/phone-numbers/${id}`, {
-                method: 'DELETE',
+            const response = await fetch(url, {
+                method: 'GET',
                 headers: getHeaders()
-            })
-                .then(response => {
-                    if (response.ok) {
-                        loadPhoneNumbers();
-                    } else {
-                        response.json().then(data => {
-                            alert(data.errors ? data.errors.join(', ') : 'Error removing phone number');
-                        }).catch(() => {
-                            alert('Error removing phone number');
-                        });
-                    }
-                })
-                .catch(error => console.error('Error:', error));
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                renderCallsTable(data.calls);
+                renderPagination(data);
+                currentPage = data.currentPage;
+            } else {
+                console.error('Failed to load calls');
+            }
+        } catch (error) {
+            console.error('Error loading calls:', error);
         }
     }
 
-    function updateProfile() {
-        const username = document.getElementById('editUsername').value;
-        const firstName = document.getElementById('editFirstName').value;
-        const lastName = document.getElementById('editLastName').value;
-        const middleName = document.getElementById('editMiddleName').value;
-        fetch('/api/user/profile', {
-            method: 'PUT',
-            headers: getHeaders(),
-            body: JSON.stringify({ username: username, firstName: firstName, lastName: lastName, middleName: middleName })
-        })
-            .then(response => {
-                if (response.ok) {
-                    loadProfile();
-                    const modal = bootstrap.Modal.getInstance(document.getElementById('editProfileModal'));
-                    modal.hide();
-                } else {
-                    response.json().then(data => {
-                        alert(data.errors ? data.errors.join(', ') : 'Error updating profile');
-                    }).catch(() => {
-                        alert('Error updating profile');
-                    });
-                }
-            })
-            .catch(error => console.error('Error:', error));
+    function renderCallsTable(calls) {
+        const tbody = document.getElementById('calls-tbody');
+        tbody.innerHTML = '';
+
+        calls.forEach(call => {
+            const row = document.createElement('tr');
+            row.className = 'hover:bg-secondary-50 dark:hover:bg-secondary-800/50 transition-colors';
+
+            // Format call time
+            const callTime = new Date(call.callTime).toLocaleString('ru-RU', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            });
+
+            row.innerHTML = `
+                <td class="py-4 px-4">${call.userPhone}</td>
+                <td class="py-4 px-4">${call.otherPartyName}</td>
+                <td class="py-4 px-4">${call.otherPartyPhone}</td>
+                <td class="py-4 px-4">
+                    <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium ${call.type === "INCOMING" ? "status-incoming" : "status-outgoing"}">
+                        <i class="fas ${call.type === "INCOMING" ? "fa-phone-incoming" : "fa-phone-outgoing"}"></i>
+                        ${call.type === "INCOMING" ? "Входящий" : "Исходящий"}
+                    </div>
+                </td>
+                <td class="py-4 px-4">${call.duration}</td>
+                <td class="py-4 px-4">${callTime}</td>
+                <td class="py-4 px-4">${call.tariff} ₽</td>
+                <td class="py-4 px-4 font-medium">${call.cost} ₽</td>
+                <td class="py-4 px-4">
+                    <button class="px-3 py-1.5 bg-primary-600 text-white text-sm rounded-lg hover:bg-primary-700 transition" data-phone="${call.otherPartyPhone}" onclick="showUserDetails(this)">Подробности</button>
+                </td>
+            `;
+
+            tbody.appendChild(row);
+        });
     }
 
-    document.getElementById('addPhoneBtn').addEventListener('click', addPhone);
-    document.getElementById('updateProfileBtn').addEventListener('click', updateProfile);
-    document.addEventListener('DOMContentLoaded', () => {
-        loadPhoneNumbers();
-        loadProfile();
+    function renderPagination(data) {
+        const paginationContainer = document.getElementById('pagination-container');
+        if (!paginationContainer) {
+            // Create pagination container if it doesn't exist
+            const container = document.querySelector('.bg-white.dark\\:bg-secondary-800.shadow-card.rounded-xl.overflow-hidden.animate-fade-in');
+            const paginationDiv = document.createElement('div');
+            paginationDiv.id = 'pagination-container';
+            paginationDiv.className = 'p-6 border-t border-secondary-200 dark:border-secondary-700 flex justify-between items-center';
+            container.appendChild(paginationDiv);
+        }
+
+        const { currentPage, totalPages, totalElements, hasNext, hasPrevious } = data;
+
+        document.getElementById('pagination-container').innerHTML = `
+            <div class="text-sm text-secondary-600 dark:text-secondary-400">
+                Показано ${currentPage * 10 + 1}-${Math.min((currentPage + 1) * 10, totalElements)} из ${totalElements} звонков
+            </div>
+            <div class="flex gap-2">
+                <button id="prev-page" class="px-3 py-2 bg-secondary-300 dark:bg-secondary-600 text-secondary-800 dark:text-secondary-100 rounded-lg hover:bg-secondary-400 dark:hover:bg-secondary-500 transition disabled:opacity-50 disabled:cursor-not-allowed" ${!hasPrevious ? 'disabled' : ''}>
+                    <i class="fas fa-chevron-left"></i> Предыдущая
+                </button>
+                <span class="px-3 py-2 bg-primary-100 dark:bg-primary-900 text-primary-800 dark:text-primary-200 rounded-lg">
+                    Страница ${currentPage + 1} из ${totalPages}
+                </span>
+                <button id="next-page" class="px-3 py-2 bg-secondary-300 dark:bg-secondary-600 text-secondary-800 dark:text-secondary-100 rounded-lg hover:bg-secondary-400 dark:hover:bg-secondary-500 transition disabled:opacity-50 disabled:cursor-not-allowed" ${!hasNext ? 'disabled' : ''}>
+                    Следующая <i class="fas fa-chevron-right"></i>
+                </button>
+            </div>
+        `;
+
+        // Add event listeners
+        document.getElementById('prev-page').addEventListener('click', () => {
+            if (hasPrevious) {
+                loadCalls(currentPage - 1);
+            }
+        });
+
+        document.getElementById('next-page').addEventListener('click', () => {
+            if (hasNext) {
+                loadCalls(currentPage + 1);
+            }
+        });
+    }
+
+    function showUserDetails(button) {
+        const phone = button.getAttribute('data-phone');
+        fetch('/api/calls/user-info?phone=' + encodeURIComponent(phone))
+            .then(response => {
+                if (!response.ok) {
+                    if (response.status === 404) {
+                        throw new Error('Пользователь с таким номером телефона больше не зарегистрирован в системе');
+                    }
+                    throw new Error('Не удалось загрузить данные пользователя');
+                }
+                return response.json();
+            })
+            .then(data => {
+                const avatarImg = document.getElementById('avatar');
+                if (data.avatarPath) {
+                    avatarImg.src = '/uploads/' + data.avatarPath;
+                    avatarImg.style.display = 'block';
+                } else {
+                    avatarImg.style.display = 'none';
+                }
+                document.getElementById('firstName').textContent = data.firstName || '';
+                document.getElementById('lastName').textContent = data.lastName || '';
+                document.getElementById('middleName').textContent = data.middleName || '';
+                document.getElementById('phone').textContent = data.phone || '';
+                document.getElementById('publicContactInfo').textContent = data.publicContactInfo || 'Дополнительная информация отсутствует.';
+                document.getElementById('userDetailsModal').classList.remove('hidden');
+            })
+            .catch(error => {
+                alert('Ошибка: ' + error.message);
+            });
+    }
+
+    // Profile menu
+    const profileTrigger = document.getElementById('profile-trigger');
+    const profileMenu = document.getElementById('profile-menu');
+
+    profileTrigger.addEventListener('click', (e) => {
+        e.stopPropagation();
+        profileMenu.classList.toggle('hidden');
     });
+
+    document.addEventListener('click', () => {
+        profileMenu.classList.add('hidden');
+    });
+
+    // Tab switching functions
+    function showProfileTab() {
+        document.getElementById('profileTab').classList.add('border-primary-500', 'text-primary-600', 'dark:text-primary-400');
+        document.getElementById('profileTab').classList.remove('text-secondary-500');
+        document.getElementById('passwordTab').classList.remove('border-primary-500', 'text-primary-600', 'dark:text-primary-400');
+        document.getElementById('passwordTab').classList.add('text-secondary-500');
+        document.getElementById('deleteTab').classList.remove('border-primary-500', 'text-primary-600', 'dark:text-primary-400');
+        document.getElementById('deleteTab').classList.add('text-secondary-500');
+        document.getElementById('profileTabContent').classList.remove('hidden');
+        document.getElementById('passwordTabContent').classList.add('hidden');
+        document.getElementById('deleteTabContent').classList.add('hidden');
+    }
+
+    function showPasswordTab() {
+        document.getElementById('passwordTab').classList.add('border-primary-500', 'text-primary-600', 'dark:text-primary-400');
+        document.getElementById('passwordTab').classList.remove('text-secondary-500');
+        document.getElementById('profileTab').classList.remove('border-primary-500', 'text-primary-600', 'dark:text-primary-400');
+        document.getElementById('profileTab').classList.add('text-secondary-500');
+        document.getElementById('deleteTab').classList.remove('border-primary-500', 'text-primary-600', 'dark:text-primary-400');
+        document.getElementById('deleteTab').classList.add('text-secondary-500');
+        document.getElementById('passwordTabContent').classList.remove('hidden');
+        document.getElementById('profileTabContent').classList.add('hidden');
+        document.getElementById('deleteTabContent').classList.add('hidden');
+    }
+
+    function showDeleteTab() {
+        document.getElementById('deleteTab').classList.add('border-primary-500', 'text-primary-600', 'dark:text-primary-400');
+        document.getElementById('deleteTab').classList.remove('text-secondary-500');
+        document.getElementById('profileTab').classList.remove('border-primary-500', 'text-primary-600', 'dark:text-primary-400');
+        document.getElementById('profileTab').classList.add('text-secondary-500');
+        document.getElementById('passwordTab').classList.remove('border-primary-500', 'text-primary-600', 'dark:text-primary-400');
+        document.getElementById('passwordTab').classList.add('text-secondary-500');
+        document.getElementById('deleteTabContent').classList.remove('hidden');
+        document.getElementById('profileTabContent').classList.add('hidden');
+        document.getElementById('passwordTabContent').classList.add('hidden');
+    }
+
+    // Tab event listeners
+    document.getElementById('profileTab').addEventListener('click', showProfileTab);
+    document.getElementById('passwordTab').addEventListener('click', showPasswordTab);
+    document.getElementById('deleteTab').addEventListener('click', showDeleteTab);
+
+    // Profile editing
+    document.getElementById('edit-profile-btn').addEventListener('click', async (e) => {
+        e.stopPropagation();
+        profileMenu.classList.add('hidden');
+
+        // Load current profile data
+        try {
+            const response = await fetch('/api/user/profile', {
+                method: 'GET',
+                headers: getHeaders()
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                document.getElementById('editUsername').value = data.username || '';
+                document.getElementById('editFirstName').value = data.firstName || '';
+                document.getElementById('editLastName').value = data.lastName || '';
+                document.getElementById('editMiddleName').value = data.middleName || '';
+                document.getElementById('editPublicContactInfo').value = data.publicContactInfo || '';
+
+                // Load avatar
+                const avatarPreview = document.getElementById('avatarPreview');
+                if (data.avatarPath) {
+                    avatarPreview.innerHTML = `<img src="/uploads/${data.avatarPath}?t=${Date.now()}" class="w-full h-full rounded-full object-cover">`;
+                } else {
+                    const initials = data.firstName && data.lastName ?
+                        data.firstName.charAt(0) + data.lastName.charAt(0) :
+                        data.username.substring(0, 2);
+                    avatarPreview.innerHTML = initials.toUpperCase();
+                }
+            }
+        } catch (error) {
+            console.error('Error loading profile:', error);
+        }
+
+        document.getElementById('profileModal').classList.remove('hidden');
+        // Show profile tab by default
+        showProfileTab();
+    });
+
+
+    document.getElementById('cancelProfile').addEventListener('click', () => {
+        document.getElementById('profileModal').classList.add('hidden');
+    });
+
+    document.getElementById('closeProfileModal').addEventListener('click', () => {
+        document.getElementById('profileModal').classList.add('hidden');
+    });
+
+    document.getElementById('cancelPassword').addEventListener('click', () => {
+        document.getElementById('profileModal').classList.add('hidden');
+    });
+
+    // Delete account
+    document.getElementById('deleteAccountBtn').addEventListener('click', () => {
+        if (confirm('Вы уверены, что хотите удалить аккаунт? Это действие необратимо.')) {
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '/profile/delete-account';
+            if (csrfToken && csrfHeader) {
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = '_csrf';
+                input.value = csrfToken;
+                form.appendChild(input);
+            }
+            document.body.appendChild(form);
+            form.submit();
+        }
+    });
+
+    document.getElementById('closeUserDetails').addEventListener('click', () => {
+        document.getElementById('userDetailsModal').classList.add('hidden');
+    });
+
+    // Avatar upload
+    document.getElementById('changeAvatar').addEventListener('click', () => {
+        document.getElementById('avatarInput').click();
+    });
+
+    document.getElementById('avatarPreview').addEventListener('click', () => {
+        document.getElementById('avatarInput').click();
+    });
+
+    document.getElementById('avatarInput').addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            // Preview
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                document.getElementById('avatarPreview').innerHTML = `<img src="${e.target.result}" class="w-full h-full rounded-full object-cover">`;
+            };
+            reader.readAsDataURL(file);
+
+            // Upload
+            const formData = new FormData();
+            formData.append('avatar', file);
+
+            try {
+                const response = await fetch('/api/user/avatar', {
+                    method: 'POST',
+                    headers: {
+                        [csrfHeader]: csrfToken
+                    },
+                    body: formData
+                });
+
+                if (response.ok) {
+                    console.log('Avatar uploaded successfully');
+                    // Update the profile avatar in header
+                    const userInitials = document.querySelector('#profile-trigger span');
+                    if (userInitials) {
+                        // Optionally reload the page or update avatar src
+                        location.reload(); // Simple way to refresh avatar
+                    }
+                } else {
+                    alert('Failed to upload avatar');
+                }
+            } catch (error) {
+                console.error('Error uploading avatar:', error);
+                alert('Error uploading avatar');
+            }
+        }
+    });
+
+    // Profile form submission
+    document.getElementById('profileForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const formData = {
+            username: document.getElementById('editUsername').value.trim(),
+            firstName: document.getElementById('editFirstName').value.trim(),
+            lastName: document.getElementById('editLastName').value.trim(),
+            middleName: document.getElementById('editMiddleName').value.trim(),
+            publicContactInfo: document.getElementById('editPublicContactInfo').value.trim()
+        };
+
+        try {
+            const response = await fetch('/api/user/profile', {
+                method: 'PUT',
+                headers: getHeaders(),
+                body: JSON.stringify(formData)
+            });
+
+            if (response.ok) {
+                alert('Профиль успешно обновлен');
+                document.getElementById('profileModal').classList.add('hidden');
+                location.reload(); // Reload to show updated data
+            } else {
+                let errorMessage = 'Ошибка обновления профиля';
+                try {
+                    const errorData = await response.json();
+                    if (errorData.errors && errorData.errors.length > 0) {
+                        errorMessage = errorData.errors[0];
+                    } else if (response.status === 400) {
+                        errorMessage = 'Проверьте правильность введённых данных';
+                    }
+                } catch (e) {
+                    // Response might not be JSON
+                    if (response.status === 400) {
+                        errorMessage = 'Неверные данные. Проверьте поля формы';
+                    }
+                }
+                alert(errorMessage);
+            }
+        } catch (error) {
+            console.error('Error updating profile:', error);
+            alert('Ошибка сети. Проверьте подключение к интернету');
+        }
+    });
+
+    // Password form submission
+    document.getElementById('passwordForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const currentPassword = document.getElementById('currentPassword').value;
+        const newPassword = document.getElementById('newPasswordField').value;
+        const confirmPassword = document.getElementById('confirmNewPassword').value;
+
+        if (newPassword !== confirmPassword) {
+            alert('Новый пароль и подтверждение не совпадают');
+            return;
+        }
+
+        const passwordData = {
+            currentPassword: currentPassword,
+            password: newPassword,
+            confirmPassword: confirmPassword
+        };
+
+        try {
+            const response = await fetch('/api/user/change-password', {
+                method: 'POST',
+                headers: getHeaders(),
+                body: JSON.stringify(passwordData)
+            });
+
+            if (response.ok) {
+                alert('Пароль успешно изменён');
+                document.getElementById('profileModal').classList.add('hidden');
+                // Clear form
+                document.getElementById('passwordForm').reset();
+            } else {
+                let errorMessage = 'Ошибка смены пароля';
+                try {
+                    const errorData = await response.json();
+                    if (errorData.errors && errorData.errors.length > 0) {
+                        errorMessage = errorData.errors[0];
+                    } else if (response.status === 400) {
+                        errorMessage = 'Неверный текущий пароль или данные';
+                    }
+                } catch (e) {
+                    // Response might not be JSON
+                }
+                alert(errorMessage);
+            }
+        } catch (error) {
+            console.error('Error changing password:', error);
+            alert('Ошибка сети. Проверьте подключение к интернету');
+        }
+    });
+
+    // Load data on page load
+    document.addEventListener('DOMContentLoaded', () => loadCalls(0));
 </script>
 </body>
 </html>

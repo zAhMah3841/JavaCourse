@@ -3,6 +3,7 @@ package com.example.call_track.controller;
 import com.example.call_track.dto.PhoneNumberDto;
 import com.example.call_track.dto.PhoneNumberMapper;
 import com.example.call_track.dto.user.InitiateResetDto;
+import com.example.call_track.dto.user.PasswordChangeDto;
 import com.example.call_track.dto.user.ResetPasswordDto;
 import com.example.call_track.dto.user.UpdateDto;
 import com.example.call_track.dto.user.VerifyCodeDto;
@@ -15,6 +16,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.HashMap;
 import java.util.List;
@@ -38,6 +40,7 @@ public class UserApiController {
         updateDto.setFirstName(user.getFirstName());
         updateDto.setLastName(user.getLastName());
         updateDto.setMiddleName(user.getMiddleName());
+        updateDto.setPublicContactInfo(user.getPublicContactInfo());
         return ResponseEntity.ok(updateDto);
     }
 
@@ -75,6 +78,18 @@ public class UserApiController {
         User user = userService.getCurrentAuthenticatedUser();
         phoneNumberService.removePhoneNumber(user, id);
         return ResponseEntity.ok("Phone number removed");
+    }
+
+    @PostMapping("/change-password")
+    public ResponseEntity<String> changePassword(@Valid @RequestBody PasswordChangeDto passwordChangeDto) {
+        userService.changePassword(passwordChangeDto);
+        return ResponseEntity.ok("Password changed successfully");
+    }
+
+    @PostMapping("/avatar")
+    public ResponseEntity<String> uploadAvatar(@RequestParam("avatar") MultipartFile file) {
+        userService.updateAvatar(file);
+        return ResponseEntity.ok("Avatar uploaded successfully");
     }
 
     //TODO: Fix that code

@@ -26,14 +26,7 @@ public class DashboardController {
             User currentUser = userService.getCurrentAuthenticatedUser();
             model.addAttribute("user", currentUser);
             model.addAttribute("isAdmin", currentUser.getRole().name().equals("ADMIN"));
-
-            // Get recent calls for the user
-            List<Call> recentCalls = callService.findByUser(currentUser);
-            // Limit to last 10 calls for dashboard
-            if (recentCalls.size() > 10) {
-                recentCalls = recentCalls.subList(0, 10);
-            }
-            model.addAttribute("recentCalls", recentCalls);
+            model.addAttribute("timestamp", System.currentTimeMillis());
         }
         return "dashboard";
     }

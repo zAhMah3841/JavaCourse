@@ -110,16 +110,28 @@ public class UserService implements UserDetailsService {
     @Transactional
     public void updateAvatar(MultipartFile file) {
         User currentUser = getCurrentAuthenticatedUser();
+        logger.info("Updating avatar for user {}", currentUser.getUsername());
 
         // Validate file
         if (file.isEmpty()) {
             throw new IllegalArgumentException("File is empty");
         }
 
+        // Check file size (max 5MB)
+        long maxSize = 5 * 1024 * 1024; // 5MB
+        if (file.getSize() > maxSize) {
+            throw new IllegalArgumentException("File size too large. Maximum allowed size is 5MB");
+        }
+
         // Check file type
         String contentType = file.getContentType();
-        if (contentType == null || !contentType.startsWith("image/")) {
-            throw new IllegalArgumentException("Only image files are allowed");
+        String originalFilename = file.getOriginalFilename();
+        boolean isImageByContentType = contentType != null && contentType.startsWith("image/");
+        boolean isImageByExtension = originalFilename != null &&
+                originalFilename.toLowerCase().matches(".*\\.(jpg|jpeg|png|gif|bmp|webp)$");
+
+        if (!isImageByContentType && !isImageByExtension) {
+            throw new IllegalArgumentException("Only image files are allowed (jpg, jpeg, png, gif, bmp, webp)");
         }
 
         // Delete old avatar if exists
@@ -127,14 +139,21 @@ public class UserService implements UserDetailsService {
 
         // Save new avatar
         try {
-            String fileName = UUID.randomUUID().toString() + "_" + file.getOriginalFilename();
-            Path avatarPath = Paths.get("uploads", "avatars", fileName);
+            String extension = "";
+            if (originalFilename != null && originalFilename.contains(".")) {
+                extension = originalFilename.substring(originalFilename.lastIndexOf("."));
+            }
+            String fileName = UUID.randomUUID().toString() + extension;
+            Path uploadDir = Paths.get("uploads").toAbsolutePath();
+            Path avatarPath = uploadDir.resolve("avatars").resolve(fileName);
             Files.createDirectories(avatarPath.getParent());
             Files.copy(file.getInputStream(), avatarPath, StandardCopyOption.REPLACE_EXISTING);
 
             currentUser.setAvatarPath("avatars/" + fileName);
             userRepository.save(currentUser);
+            logger.info("Avatar updated successfully for user {}", currentUser.getUsername());
         } catch (IOException e) {
+            logger.error("Failed to save avatar for user {}", currentUser.getUsername(), e);
             throw new RuntimeException("Failed to save avatar", e);
         }
     }
