@@ -25,7 +25,7 @@
         <div class="col-md-10">
             <div class="card">
                 <div class="card-header">
-                    <h3 class="text-center">User Role Management</h3>
+                    <h3 class="text-center">Admin Control Panel</h3>
                 </div>
                 <div class="card-body">
                     <div th:if="${successMessage}" class="alert alert-success" role="alert">
@@ -41,21 +41,37 @@
                             <thead>
                             <tr>
                                 <th>Username</th>
-                                <th>Name</th>
+                                <th>Full Name</th>
+                                <th>Phone Numbers</th>
+                                <th>Public Contact Info</th>
+                                <th>Avatar</th>
                                 <th>Role</th>
                                 <th>Created</th>
+                                <th>Updated</th>
                                 <th>Actions</th>
                             </tr>
                             </thead>
                             <tbody>
                             <tr th:each="user : ${users}">
                                 <td th:text="${user.username}"></td>
-                                <td th:text="${user.firstName + ' ' + user.lastName}"></td>
+                                <td th:text="${user.firstName + (user.middleName != null ? ' ' + user.middleName : '') + ' ' + user.lastName}"></td>
+                                <td>
+                                    <ul th:if="${user.phoneNumbers}" class="list-unstyled mb-0">
+                                        <li th:each="phone : ${user.phoneNumbers}" th:text="${phone.phone + (phone.primary ? ' (Primary)' : '')}"></li>
+                                    </ul>
+                                    <span th:if="${user.phoneNumbers == null or user.phoneNumbers.empty}">No phone numbers</span>
+                                </td>
+                                <td th:text="${user.publicContactInfo != null ? user.publicContactInfo : 'N/A'}"></td>
+                                <td>
+                                    <img th:if="${user.avatarPath != null and !user.avatarPath.isEmpty()}" th:src="${'/uploads/avatars/' + user.avatarPath}" width="50" height="50" class="img-thumbnail" alt="Avatar">
+                                    <span th:if="${user.avatarPath == null or user.avatarPath.isEmpty()}">No avatar</span>
+                                </td>
                                 <td>
                                         <span th:class="${user.role.name() == 'ADMIN'} ? 'badge bg-danger' : 'badge bg-primary'"
                                               th:text="${user.role.name()}"></span>
                                 </td>
                                 <td th:text="${#temporals.format(user.createdAt, 'dd/MM/yyyy HH:mm')}"></td>
+                                <td th:text="${user.updatedAt != null ? #temporals.format(user.updatedAt, 'dd/MM/yyyy HH:mm') : 'N/A'}"></td>
                                 <td>
                                     <form th:action="@{'/admin/change-role/' + ${user.id}}" method="post" class="d-inline">
                                         <select name="newRole" class="form-select form-select-sm d-inline-block w-auto">

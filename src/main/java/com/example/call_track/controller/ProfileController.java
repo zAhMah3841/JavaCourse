@@ -34,7 +34,7 @@ public class ProfileController {
         model.addAttribute("passwordChangeDto", new PasswordChangeDto());
         model.addAttribute("user", user);
         model.addAttribute("timestamp", System.currentTimeMillis());
-        return "profile";
+        return "dashboard";
     }
 
     @PostMapping("/profile/delete-account")
