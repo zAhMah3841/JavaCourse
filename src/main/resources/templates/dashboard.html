@@ -966,6 +966,39 @@
 
         const { currentPage, totalPages, totalElements, hasNext, hasPrevious } = data;
 
+        let pageButtons = '';
+
+        if (totalPages <= 7) {
+            for (let i = 0; i < totalPages; i++) {
+                const isActive = i === currentPage;
+                pageButtons += `<button class="page-btn w-8 h-8 rounded-lg ${isActive ? 'bg-primary-600 text-white' : 'hover:bg-secondary-100 dark:hover:bg-secondary-700'} transition" data-page="${i}">${i + 1}</button>`;
+            }
+        } else {
+            // First page
+            pageButtons += `<button class="page-btn w-8 h-8 rounded-lg ${currentPage === 0 ? 'bg-primary-600 text-white' : 'hover:bg-secondary-100 dark:hover:bg-secondary-700'} transition" data-page="0">1</button>`;
+
+            if (currentPage > 3) {
+                pageButtons += `<span class="px-2 text-secondary-500">...</span>`;
+            }
+
+            const start = Math.max(1, currentPage - 2);
+            const end = Math.min(totalPages - 2, currentPage + 2);
+
+            for (let i = start; i <= end; i++) {
+                const isActive = i === currentPage;
+                pageButtons += `<button class="page-btn w-8 h-8 rounded-lg ${isActive ? 'bg-primary-600 text-white' : 'hover:bg-secondary-100 dark:hover:bg-secondary-700'} transition" data-page="${i}">${i + 1}</button>`;
+            }
+
+            if (currentPage < totalPages - 4) {
+                pageButtons += `<span class="px-2 text-secondary-500">...</span>`;
+            }
+
+            // Last page
+            if (totalPages > 1) {
+                pageButtons += `<button class="page-btn w-8 h-8 rounded-lg ${currentPage === totalPages - 1 ? 'bg-primary-600 text-white' : 'hover:bg-secondary-100 dark:hover:bg-secondary-700'} transition" data-page="${totalPages - 1}">${totalPages}</button>`;
+            }
+        }
+
         paginationContainer.innerHTML = `
             <div class="text-sm text-secondary-500 dark:text-secondary-400 mb-3 md:mb-0">
                 Показано <span class="font-medium text-secondary-800 dark:text-secondary-200">${currentPage * 10 + 1}-${Math.min((currentPage + 1) * 10, totalElements)}</span> из <span class="font-medium text-secondary-800 dark:text-secondary-200">${totalElements}</span> записей
@@ -975,7 +1008,7 @@
                     <i class="fas fa-chevron-left"></i>
                 </button>
                 <div class="flex gap-1">
-                    <button class="page-btn w-8 h-8 rounded-lg bg-primary-600 text-white">${currentPage + 1}</button>
+                    ${pageButtons}
                 </div>
                 <button id="next-page" class="p-2 rounded-lg hover:bg-secondary-100 dark:hover:bg-secondary-700 disabled:opacity-50 disabled:cursor-not-allowed" ${!hasNext ? 'disabled' : ''}>
                     <i class="fas fa-chevron-right"></i>
@@ -994,6 +1027,14 @@
             if (hasNext) {
                 loadCalls(currentFilters, currentPage + 1);
             }
+        });
+
+        // Add event listeners for page buttons
+        document.querySelectorAll('.page-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const page = parseInt(this.getAttribute('data-page'));
+                loadCalls(currentFilters, page);
+            });
         });
     }
 
