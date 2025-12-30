@@ -23,10 +23,7 @@ public class CallSpecifications {
             String startDate,
             String endDate,
             BigDecimal minCost,
-            BigDecimal maxCost,
-            BigDecimal pricePerMinute,
-            BigDecimal minPrice,
-            BigDecimal maxPrice
+            BigDecimal maxCost
     ) {
         return (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
@@ -133,13 +130,6 @@ public class CallSpecifications {
             // Стоимость звонка
             if (minCost != null) predicates.add(cb.greaterThanOrEqualTo(root.get("totalCost"), minCost));
             if (maxCost != null) predicates.add(cb.lessThanOrEqualTo(root.get("totalCost"), maxCost));
-            // Цена за минуту
-            if (pricePerMinute != null)
-                predicates.add(cb.equal(root.get("pricePerMinute"), pricePerMinute));
-            if (minPrice != null)
-                predicates.add(cb.greaterThanOrEqualTo(root.get("pricePerMinute"), minPrice));
-            if (maxPrice != null)
-                predicates.add(cb.lessThanOrEqualTo(root.get("pricePerMinute"), maxPrice));
 
             return cb.and(predicates.toArray(new Predicate[0]));
         };

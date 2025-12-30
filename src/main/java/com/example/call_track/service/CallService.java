@@ -90,12 +90,11 @@ public class CallService {
             String startDate, String endDate,
             String sortBy, String sortDir,
             BigDecimal minCost, BigDecimal maxCost,
-            BigDecimal pricePerMinute, BigDecimal minPrice, BigDecimal maxPrice,
             Pageable pageable
     ) {
         return callRepository.findAll(
                 com.example.call_track.spec.CallSpecifications.filterAll(
-                        user, name, myNumbers, phone, callType, startDate, endDate, minCost, maxCost, pricePerMinute, minPrice, maxPrice
+                        user, name, myNumbers, phone, callType, startDate, endDate, minCost, maxCost
                 ),
                 org.springframework.data.domain.PageRequest.of(
                         pageable.getPageNumber(),

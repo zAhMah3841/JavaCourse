@@ -24,8 +24,8 @@ public class AdminController extends BaseController {
     public String adminPanel(Model model) {
         List<User> users = userService.findAllActive();
         User currentUser = userService.getCurrentAuthenticatedUser();
-        users.removeIf(user -> user.getId().equals(currentUser.getId()));
         model.addAttribute("users", users);
+        model.addAttribute("user", currentUser);
         return "admin";
     }
 

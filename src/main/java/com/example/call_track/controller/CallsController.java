@@ -73,10 +73,7 @@ public class CallsController extends BaseController {
             @RequestParam(required = false) String sortBy,
             @RequestParam(required = false) String sortDir,
             @RequestParam(required = false) java.math.BigDecimal minCost,
-            @RequestParam(required = false) java.math.BigDecimal maxCost,
-            @RequestParam(required = false) java.math.BigDecimal pricePerMinute,
-            @RequestParam(required = false) java.math.BigDecimal minPrice,
-            @RequestParam(required = false) java.math.BigDecimal maxPrice
+            @RequestParam(required = false) java.math.BigDecimal maxCost
     ) {
         User currentUser = userService.getCurrentAuthenticatedUser();
         boolean isAdmin = currentUser.getRole().name().equals("ADMIN");
@@ -85,8 +82,7 @@ public class CallsController extends BaseController {
         org.springframework.data.domain.Page<Call> callPage = callService.searchUserCalls(
                 isAdmin ? null : currentUser, name, isAdmin ? null : myNumbers, phone,
                 isAdmin ? null : callType, startDate, endDate,
-                sortBy, sortDir, minCost, maxCost,
-                pricePerMinute, minPrice, maxPrice, pageable
+                sortBy, sortDir, minCost, maxCost, pageable
         );
 
         List<CallDto> callDtos = callPage.getContent().stream()
