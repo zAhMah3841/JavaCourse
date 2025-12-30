@@ -62,17 +62,17 @@ public class CallSpecifications {
                 predicates.add(cb.or(otherPartyMatchCaller, otherPartyMatchCallee));
             }
 
-            // Фильтр по номерам (показывать только входящие звонки на выбранные номера пользователя)
+            // Фильтр по номерам (показывать звонки, где номер пользователя в списке выбранных)
             if (myNumbers != null && !myNumbers.isBlank()) {
                 List<String> nums = Arrays.stream(myNumbers.split(","))
                         .map(String::trim)
                         .filter(s -> !s.isEmpty())
                         .collect(Collectors.toList());
                 if (!nums.isEmpty()) {
-                    // Показывать только входящие звонки на выбранные номера
-                    Predicate userIsCallee = cb.equal(calleeUser, user);
-                    Predicate calleeInSelected = calleePhone.get("phone").in(nums);
-                    predicates.add(cb.and(userIsCallee, calleeInSelected));
+                    // Показывать звонки, где пользовательский номер (caller или callee) в выбранных
+                    Predicate outgoingMatch = cb.and(cb.equal(callerUser, user), callerPhone.get("phone").in(nums));
+                    Predicate incomingMatch = cb.and(cb.equal(calleeUser, user), calleePhone.get("phone").in(nums));
+                    predicates.add(cb.or(outgoingMatch, incomingMatch));
                 }
             }
 
@@ -96,13 +96,13 @@ public class CallSpecifications {
             // Диапазон дат
             if (startDate != null && !startDate.isBlank()) {
                 try {
-                    LocalDateTime start = LocalDateTime.parse(startDate.replace("T", " ").replace(" ", "T"));
+                    LocalDateTime start = LocalDateTime.parse(startDate, java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss"));
                     predicates.add(cb.greaterThanOrEqualTo(root.get("callDateTime"), start));
                 } catch (DateTimeParseException ignore) {}
             }
             if (endDate != null && !endDate.isBlank()) {
                 try {
-                    LocalDateTime end = LocalDateTime.parse(endDate.replace("T", " ").replace(" ", "T"));
+                    LocalDateTime end = LocalDateTime.parse(endDate, java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss"));
                     predicates.add(cb.lessThanOrEqualTo(root.get("callDateTime"), end));
                 } catch (DateTimeParseException ignore) {}
             }
