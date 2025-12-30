@@ -65,6 +65,9 @@ public class User implements UserDetails {
     @Column(name = "avatar_path")
     private String avatarPath;
 
+    @Column(name = "public_contact_info", length = 500)
+    private String publicContactInfo;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     @Builder.Default private UserRole role = UserRole.USER;

@@ -43,7 +43,7 @@ public class AdminBootstrap implements ApplicationRunner {
     @Value("${app.admin.default-last-name:Administrator}")
     private String defaultLastName;
 
-    @Value("${app.admin.default-phone:+1234567890}")
+    @Value("${app.admin.default-phone:+375291234567}")
     private String defaultPhone;
 
     @Override

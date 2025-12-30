@@ -22,9 +22,17 @@ public class ProfileController {
 
     @GetMapping("/profile")
     public String profile(Model model) {
-        model.addAttribute("userUpdateDto", new UpdateDto());
+        var user = userService.getCurrentAuthenticatedUser();
+        var updateDto = UpdateDto.builder()
+                .username(user.getUsername())
+                .firstName(user.getFirstName())
+                .lastName(user.getLastName())
+                .middleName(user.getMiddleName())
+                .publicContactInfo(user.getPublicContactInfo())
+                .build();
+        model.addAttribute("userUpdateDto", updateDto);
         model.addAttribute("passwordChangeDto", new PasswordChangeDto());
-        model.addAttribute("user", userService.getCurrentAuthenticatedUser());
+        model.addAttribute("user", user);
         return "profile";
     }
 

@@ -51,6 +51,10 @@ public class FakeDataService {
         for (FakeUserData data : fakeUsers) {
             try {
                 User user = userService.registerUser(data.toRegistrationDto());
+                if (data.publicContactInfo != null) {
+                    user.setPublicContactInfo(data.publicContactInfo);
+                    userService.save(user);
+                }
                 appendToFile(usersFile, data.username + " : " + data.password + "\n");
                 data.user = user;
             } catch (Exception e) {
@@ -89,7 +93,13 @@ public class FakeDataService {
             } while (usedPhones.contains(phone));
             usedPhones.add(phone);
 
-            users.add(new FakeUserData(username, password, firstName, lastName, middleName, phone));
+            String publicContactInfo = null;
+            if (fakerEn.random().nextInt(10) < 3) { // 30% chance
+                String email = fakerEn.internet().emailAddress();
+                publicContactInfo = "Можно написать на email: " + email;
+            }
+
+            users.add(new FakeUserData(username, password, firstName, lastName, middleName, phone, publicContactInfo));
         }
         return users;
     }
@@ -198,15 +208,17 @@ public class FakeDataService {
         String lastName;
         String middleName;
         String phone;
+        String publicContactInfo;
         User user;
 
-        FakeUserData(String username, String password, String firstName, String lastName, String middleName, String phone) {
+        FakeUserData(String username, String password, String firstName, String lastName, String middleName, String phone, String publicContactInfo) {
             this.username = username;
             this.password = password;
             this.firstName = firstName;
             this.lastName = lastName;
             this.middleName = middleName;
             this.phone = phone;
+            this.publicContactInfo = publicContactInfo;
         }
 
         RegistrationDto toRegistrationDto() {

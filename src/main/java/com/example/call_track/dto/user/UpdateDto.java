@@ -3,9 +3,15 @@ package com.example.call_track.dto.user;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class UpdateDto {
     @NotBlank(message = "Username is required")
     @Size(min = 3, max = 50, message = "Username must be between 3 and 50 characters")
@@ -22,4 +28,7 @@ public class UpdateDto {
 
     @Size(max = 50, message = "Middle name must not exceed 50 characters")
     private String middleName;
+
+    @Size(max = 500, message = "Public contact info must not exceed 500 characters")
+    private String publicContactInfo;
 }

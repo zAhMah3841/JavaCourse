@@ -101,6 +101,9 @@ public class UserService implements UserDetailsService {
             currentUser.setUsername(updateDto.getUsername());
         }
 
+        if (updateDto.getPublicContactInfo() != null)
+            currentUser.setPublicContactInfo(updateDto.getPublicContactInfo());
+
         userRepository.save(currentUser);
     }
 

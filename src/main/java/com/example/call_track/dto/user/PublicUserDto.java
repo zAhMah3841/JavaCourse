@@ -10,4 +10,6 @@ public class PublicUserDto {
     private String lastName;
     private String middleName;
     private String phone;
+    private String avatarPath;
+    private String publicContactInfo;
 }

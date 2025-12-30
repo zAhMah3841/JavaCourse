@@ -1,5 +1,6 @@
 package com.example.call_track.controller;
 
+import com.example.call_track.dto.call.CallDto;
 import com.example.call_track.dto.user.PublicUserDto;
 import com.example.call_track.entity.PhoneNumber;
 import com.example.call_track.entity.call.Call;
@@ -16,6 +17,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Controller
 @RequiredArgsConstructor
@@ -29,7 +31,27 @@ public class CallsController extends BaseController {
     public String calls(Model model) {
         User currentUser = userService.getCurrentAuthenticatedUser();
         List<Call> calls = callService.findByUser(currentUser);
-        model.addAttribute("calls", calls);
+        List<CallDto> callDtos = calls.stream().map(call -> {
+            boolean isOutgoing = call.getCallerPhone().getUser().getId().equals(currentUser.getId());
+            PhoneNumber otherPhone = isOutgoing ? call.getCalleePhone() : call.getCallerPhone();
+            User otherUser = otherPhone.getUser();
+            String otherPartyName = otherUser.getFirstName() + " " + otherUser.getLastName() +
+                    (otherUser.getMiddleName() != null ? " " + otherUser.getMiddleName() : "");
+            String userPhone = isOutgoing ? call.getCallerPhone().getPhone() : call.getCalleePhone().getPhone();
+            String type = isOutgoing ? "OUTGOING" : "INCOMING";
+            String duration = String.format("%02d:%02d", call.getDurationSeconds() / 60, call.getDurationSeconds() % 60);
+            return CallDto.builder()
+                    .otherPartyName(otherPartyName)
+                    .otherPartyPhone(otherPhone.getPhone())
+                    .userPhone(userPhone)
+                    .type(type)
+                    .duration(duration)
+                    .callTime(call.getCallDateTime())
+                    .tariff(call.getPricePerMinute())
+                    .cost(call.getTotalCost())
+                    .build();
+        }).collect(Collectors.toList());
+        model.addAttribute("calls", callDtos);
         model.addAttribute("user", currentUser);
         return "calls";
     }
@@ -49,6 +71,8 @@ public class CallsController extends BaseController {
                 .lastName(user.getLastName())
                 .middleName(user.getMiddleName())
                 .phone(phone)
+                .avatarPath(user.getAvatarPath())
+                .publicContactInfo(user.getPublicContactInfo())
                 .build();
         return ResponseEntity.ok(dto);
     }

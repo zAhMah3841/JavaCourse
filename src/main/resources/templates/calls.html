@@ -34,6 +34,7 @@
                             <tr>
                                 <th>Your Phone</th>
                                 <th>Other Party</th>
+                                <th>Other Party Phone</th>
                                 <th>Type</th>
                                 <th>Duration</th>
                                 <th>Call Time</th>
@@ -44,18 +45,19 @@
                             </thead>
                             <tbody>
                             <tr th:each="call : ${calls}">
-                                <td th:text="${call.callerPhone.user.id eq user.id ? call.callerPhone.phone : call.calleePhone.phone}"></td>
-                                <td th:text="${call.callerPhone.user.id eq user.id ? call.calleePhone.phone : call.callerPhone.phone}"></td>
+                                <td th:text="${call.userPhone}"></td>
+                                <td th:text="${call.otherPartyName}"></td>
+                                <td th:text="${call.otherPartyPhone}"></td>
                                 <td>
-                                    <span th:class="${call.callerPhone.user.id eq user.id ? 'badge bg-primary' : 'badge bg-success'}"
-                                          th:text="${call.callerPhone.user.id eq user.id ? 'OUTGOING' : 'INCOMING'}"></span>
+                                    <span th:class="${call.type eq 'OUTGOING' ? 'badge bg-primary' : 'badge bg-success'}"
+                                          th:text="${call.type}"></span>
                                 </td>
-                                <td th:text="${T(java.lang.String).format('%02d:%02d', call.durationSeconds / 60, call.durationSeconds % 60)}"></td>
-                                <td th:text="${#temporals.format(call.callDateTime, 'dd/MM/yyyy HH:mm:ss')}"></td>
-                                <td th:text="${call.pricePerMinute}"></td>
-                                <td th:text="${call.totalCost}"></td>
+                                <td th:text="${call.duration}"></td>
+                                <td th:text="${#temporals.format(call.callTime, 'dd/MM/yyyy HH:mm:ss')}"></td>
+                                <td th:text="${call.tariff}"></td>
+                                <td th:text="${call.cost}"></td>
                                 <td>
-                                    <button class="btn btn-info btn-sm" th:data-phone="${call.callerPhone.user.id eq user.id ? call.calleePhone.phone : call.callerPhone.phone}" onclick="showUserDetails(this)">Details</button>
+                                    <button class="btn btn-info btn-sm" th:data-phone="${call.otherPartyPhone}" onclick="showUserDetails(this)">Details</button>
                                 </td>
                             </tr>
                             </tbody>
@@ -76,10 +78,15 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
+                <div class="text-center mb-3">
+                    <img id="avatar" src="" alt="Avatar" class="rounded-circle" style="width: 100px; height: 100px; object-fit: cover;">
+                </div>
                 <p><strong>First Name:</strong> <span id="firstName"></span></p>
                 <p><strong>Last Name:</strong> <span id="lastName"></span></p>
                 <p><strong>Middle Name:</strong> <span id="middleName"></span></p>
                 <p><strong>Phone:</strong> <span id="phone"></span></p>
+                <p><strong>Additional Contact Info:</strong></p>
+                <p id="publicContactInfo"></p>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
@@ -100,10 +107,18 @@
                 return response.json();
             })
             .then(data => {
+                const avatarImg = document.getElementById('avatar');
+                if (data.avatarPath) {
+                    avatarImg.src = '/uploads/' + data.avatarPath;
+                    avatarImg.style.display = 'block';
+                } else {
+                    avatarImg.style.display = 'none';
+                }
                 document.getElementById('firstName').textContent = data.firstName || '';
                 document.getElementById('lastName').textContent = data.lastName || '';
                 document.getElementById('middleName').textContent = data.middleName || '';
                 document.getElementById('phone').textContent = data.phone || '';
+                document.getElementById('publicContactInfo').textContent = data.publicContactInfo || 'No additional contact info provided.';
                 const modal = new bootstrap.Modal(document.getElementById('userDetailsModal'));
                 modal.show();
             })

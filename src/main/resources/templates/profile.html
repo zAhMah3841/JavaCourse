@@ -86,6 +86,14 @@
                                  th:errors="*{middleName}"></div>
                         </div>
 
+                        <div class="mb-3">
+                            <label for="publicContactInfo" class="form-label">Public Contact Info</label>
+                            <textarea class="form-control" id="publicContactInfo" rows="3"
+                                      th:field="*{publicContactInfo}" placeholder="Enter additional contact methods or information visible to other users"></textarea>
+                            <div class="text-danger" th:if="${#fields.hasErrors('publicContactInfo')}"
+                                 th:errors="*{publicContactInfo}"></div>
+                        </div>
+
                         <div class="d-grid gap-2">
                             <button type="submit" class="btn btn-primary">Update Profile</button>
                         </div>
