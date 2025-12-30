@@ -2,6 +2,8 @@ package com.example.call_track.repository;
 
 import com.example.call_track.entity.user.User;
 import com.example.call_track.entity.user.UserRole;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
@@ -27,4 +29,7 @@ public interface UserRepository extends JpaRepository<User, UUID> {
 
     @Query("SELECT COUNT(u) FROM User u WHERE u.role = :role AND u.deleted = false")
     Long countByRoleActive(UserRole role);
+
+    @Query("SELECT u FROM User u WHERE u.deleted = false")
+    Page<User> findAllActive(Pageable pageable);
 }

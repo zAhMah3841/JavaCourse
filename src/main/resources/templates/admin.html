@@ -184,6 +184,12 @@
         .dark .table-row-hover:hover {
             background-color: rgba(14, 165, 233, 0.08);
         }
+
+        /* Ensure buttons are clickable */
+        .action-btn {
+            cursor: pointer;
+            pointer-events: auto;
+        }
     </style>
 </head>
 
@@ -320,10 +326,10 @@
                                         <option th:value="'USER'" th:selected="${user.role.name() == 'USER'}">USER</option>
                                         <option th:value="'ADMIN'" th:selected="${user.role.name() == 'ADMIN'}">ADMIN</option>
                                     </select>
-                                    <button type="submit" class="px-3 py-1 bg-primary-600 text-white text-sm rounded hover:bg-primary-700 transition">Обновить</button>
+                                    <button type="submit" class="px-3 py-1 bg-primary-600 text-white text-sm rounded hover:bg-primary-700 transition action-btn" onclick="event.stopPropagation();">Обновить</button>
                                 </form>
                                 <form th:action="@{'/admin/delete-user/' + ${user.id}}" method="post" class="ml-2">
-                                    <button type="submit" class="px-3 py-1 bg-red-600 text-white text-sm rounded hover:bg-red-700 transition" onclick="return confirm('Вы уверены, что хотите удалить этого пользователя?')">Удалить</button>
+                                    <button type="submit" class="px-3 py-1 bg-red-600 text-white text-sm rounded hover:bg-red-700 transition action-btn">Удалить</button>
                                 </form>
                             </div>
                         </td>

@@ -5,6 +5,8 @@ import com.example.call_track.entity.user.UserRole;
 import com.example.call_track.service.FakeDataService;
 import com.example.call_track.service.UserService;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
@@ -17,6 +19,8 @@ import java.util.UUID;
 @RequestMapping("/admin")
 @RequiredArgsConstructor
 public class AdminController extends BaseController {
+    private static final Logger logger = LoggerFactory.getLogger(AdminController.class);
+
     private final UserService userService;
     private final FakeDataService fakeDataService;
 
@@ -24,6 +28,7 @@ public class AdminController extends BaseController {
     public String adminPanel(Model model) {
         List<User> users = userService.findAllActive();
         User currentUser = userService.getCurrentAuthenticatedUser();
+        users.removeIf(user -> user.getId().equals(currentUser.getId()));
         model.addAttribute("users", users);
         model.addAttribute("user", currentUser);
         return "admin";
