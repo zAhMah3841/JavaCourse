@@ -175,6 +175,58 @@
         .dark .status-outgoing {
             background-color: rgba(59, 130, 246, 0.2);
         }
+
+        /* Custom checkbox styling */
+        .my-number-checkbox {
+            appearance: none;
+            width: 1rem;
+            height: 1rem;
+            border: 1px solid #cbd5e1;
+            border-radius: 0.25rem;
+            background-color: #f8fafc;
+            cursor: pointer;
+            position: relative;
+            transition: all 0.2s ease;
+        }
+
+        .my-number-checkbox:checked {
+            background-color: #f0f9ff;
+            border-color: #0ea5e9;
+        }
+
+        .my-number-checkbox:checked::after {
+            content: '✓';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #0ea5e9;
+            font-size: 0.75rem;
+            font-weight: bold;
+        }
+
+        .dark .my-number-checkbox {
+            border-color: #475569;
+            background-color: #1e293b;
+        }
+
+        .dark .my-number-checkbox:checked {
+            background-color: #0c4a6e;
+            border-color: #0ea5e9;
+        }
+
+        .dark .my-number-checkbox:checked::after {
+            color: #38bdf8;
+        }
+
+        /* Table row hover effect */
+        .table-row-hover:hover {
+            background-color: rgba(14, 165, 233, 0.04);
+        }
+
+        .dark .table-row-hover:hover {
+            background-color: rgba(14, 165, 233, 0.08);
+        }
     </style>
 </head>
 
@@ -185,8 +237,6 @@
     <div class="flex justify-between items-center">
         <div class="flex items-center gap-6">
             <h1 class="text-xl font-bold">Менеджер звонков</h1>
-            <nav class="hidden md:flex items-center gap-4">
-            </nav>
         </div>
         <div class="flex items-center gap-4">
             <!-- Profile -->
@@ -205,29 +255,260 @@
 </header>
 
 <!-- Profile Menu -->
-<div id="profile-menu" class="absolute right-4 top-20 bg-white dark:bg-secondary-800 shadow-card rounded-xl p-2 z-50 border border-secondary-200 dark:border-secondary-700 hidden w-48 animate-fade-in">
-    <button class="w-full text-left px-3 py-2 rounded-lg hover:bg-secondary-50 dark:hover:bg-secondary-700/50 flex items-center gap-3 transition" id="edit-profile-btn">
+<div id="profile-menu" class="absolute right-4 top-20 bg-white dark:bg-secondary-800 shadow-card rounded-xl p-3 z-50 border border-secondary-200 dark:border-secondary-700 hidden w-56 animate-fade-in">
+    <div class="flex items-center gap-3 p-2 mb-2 border-b border-secondary-100 dark:border-secondary-700">
+        <div th:if="${user.avatarPath != null}">
+            <img th:src="@{'/uploads/' + ${user.avatarPath} + '?t=' + ${timestamp}}" alt="Avatar" class="w-10 h-10 rounded-full object-cover">
+        </div>
+        <div th:if="${user.avatarPath == null}" class="w-10 h-10 rounded-full bg-primary-500 flex items-center justify-center text-white font-bold">
+            <span th:text="${user.firstName != null ? user.firstName.substring(0,1).toUpperCase() + (user.lastName != null ? user.lastName.substring(0,1).toUpperCase() : '') : user.username.substring(0,2).toUpperCase()}"></span>
+        </div>
+        <div>
+            <div class="font-medium text-sm" th:text="${user.firstName + ' ' + user.lastName}"></div>
+            <div class="text-secondary-500 dark:text-secondary-400 text-xs" th:text="${user.username}"></div>
+        </div>
+    </div>
+    <button class="w-full text-left px-3 py-2.5 rounded-lg hover:bg-secondary-50 dark:hover:bg-secondary-700/50 flex items-center gap-3 transition" id="edit-profile-btn">
         <i class="fas fa-user-edit text-secondary-500 w-4"></i>
         <span class="text-sm">Редактировать профиль</span>
     </button>
     <form th:action="@{/perform_logout}" method="post">
-        <button type="submit" class="w-full text-left px-3 py-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600 dark:text-red-400 flex items-center gap-3 transition">
+        <button type="submit" class="w-full text-left px-3 py-2.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600 dark:text-red-400 flex items-center gap-3 transition">
             <i class="fas fa-sign-out-alt w-4"></i>
             <span class="text-sm">Выход</span>
         </button>
     </form>
 </div>
 
-<div class="container mx-auto px-4 py-8">
-    <div class="bg-white dark:bg-secondary-800 shadow-card rounded-xl overflow-hidden animate-fade-in">
-        <div class="p-6 border-b border-secondary-200 dark:border-secondary-700">
-            <h2 class="text-2xl font-bold">История звонков</h2>
+<!-- Main Layout -->
+<div class="flex flex-col lg:flex-row min-h-screen">
+    <!-- LEFT FILTER PANEL -->
+    <aside class="lg:w-80 bg-white dark:bg-secondary-800 shadow-card lg:min-h-[calc(100vh-5rem)] p-6 border-r border-secondary-200 dark:border-secondary-700 overflow-y-auto hidden lg:block" id="filter-panel">
+        <div class="flex items-center justify-between mb-6">
+            <h2 class="text-lg font-bold flex items-center gap-2">
+                <i class="fas fa-filter text-primary-500"></i>
+                Фильтры и сортировка
+            </h2>
+            <button id="toggle-filters" class="lg:hidden p-2 rounded-lg hover:bg-secondary-100 dark:hover:bg-secondary-700">
+                <i class="fas fa-times"></i>
+            </button>
         </div>
 
+        <!-- Сортировка -->
+        <div class="mb-8">
+            <h3 class="text-md font-semibold mb-3 flex items-center gap-2">
+                <i class="fas fa-sort-amount-down text-secondary-400"></i>
+                Сортировка
+            </h3>
+            <div class="grid grid-cols-2 gap-2">
+                <button class="sort-btn px-3 py-2 text-sm rounded-lg border border-secondary-300 dark:border-secondary-600 bg-secondary-50 dark:bg-secondary-900 hover:bg-primary-50 dark:hover:bg-primary-900/20 hover:border-primary-300 dark:hover:border-primary-500 transition flex items-center justify-center gap-1" data-sort="date_desc">
+                    <i class="fas fa-calendar"></i>
+                    <span>Дата ↓</span>
+                </button>
+                <button class="sort-btn px-3 py-2 text-sm rounded-lg border border-secondary-300 dark:border-secondary-600 bg-secondary-50 dark:bg-secondary-900 hover:bg-primary-50 dark:hover:bg-primary-900/20 hover:border-primary-300 dark:hover:border-primary-500 transition flex items-center justify-center gap-1" data-sort="date_asc">
+                    <i class="fas fa-calendar"></i>
+                    <span>Дата ↑</span>
+                </button>
+                <button class="sort-btn px-3 py-2 text-sm rounded-lg border border-secondary-300 dark:border-secondary-600 bg-secondary-50 dark:bg-secondary-900 hover:bg-primary-50 dark:hover:bg-primary-900/20 hover:border-primary-300 dark:hover:border-primary-500 transition flex items-center justify-center gap-1" data-sort="cost_desc">
+                    <i class="fas fa-ruble-sign"></i>
+                    <span>Цена ↓</span>
+                </button>
+                <button class="sort-btn px-3 py-2 text-sm rounded-lg border border-secondary-300 dark:border-secondary-600 bg-secondary-50 dark:bg-secondary-900 hover:bg-primary-50 dark:hover:bg-primary-900/20 hover:border-primary-300 dark:hover:border-primary-500 transition flex items-center justify-center gap-1" data-sort="cost_asc">
+                    <i class="fas fa-ruble-sign"></i>
+                    <span>Цена ↑</span>
+                </button>
+                <button class="sort-btn px-3 py-2 text-sm rounded-lg border border-secondary-300 dark:border-secondary-600 bg-secondary-50 dark:bg-secondary-900 hover:bg-primary-50 dark:hover:bg-primary-900/20 hover:border-primary-300 dark:hover:border-primary-500 transition flex items-center justify-center gap-1" data-sort="duration_desc">
+                    <i class="fas fa-clock"></i>
+                    <span>Время ↓</span>
+                </button>
+                <button class="sort-btn px-3 py-2 text-sm rounded-lg border border-secondary-300 dark:border-secondary-600 bg-secondary-50 dark:bg-secondary-900 hover:bg-primary-50 dark:hover:bg-primary-900/20 hover:border-primary-300 dark:hover:border-primary-500 transition flex items-center justify-center gap-1" data-sort="duration_asc">
+                    <i class="fas fa-clock"></i>
+                    <span>Время ↑</span>
+                </button>
+            </div>
+        </div>
 
-        <div class="p-6">
+        <!-- Фильтры -->
+        <div class="space-y-6">
+            <div>
+                <h3 class="text-md font-semibold mb-3 flex items-center gap-2">
+                    <i class="fas fa-sliders-h text-secondary-400"></i>
+                    Фильтры
+                </h3>
+            </div>
+
+            <!-- Name Filter -->
+            <div>
+                <label class="block mb-2 text-sm font-medium flex items-center gap-2">
+                    <i class="fas fa-user text-secondary-400"></i>
+                    ФИО абонента
+                </label>
+                <div class="relative">
+                    <i class="fas fa-search absolute left-3 top-3 text-secondary-400"></i>
+                    <input id="filter-name" type="text"
+                           placeholder="Поиск по имени"
+                           class="w-full pl-10 pr-10 py-2.5 rounded-lg border border-secondary-300 dark:border-secondary-600 bg-secondary-50 dark:bg-secondary-900 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition">
+                    <button class="clear-btn absolute right-3 top-3 text-secondary-400 hover:text-secondary-600 transition" data-input="filter-name">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Phone Filter -->
+            <div>
+                <label class="block mb-2 text-sm font-medium flex items-center gap-2">
+                    <i class="fas fa-phone text-secondary-400"></i>
+                    Номер телефона
+                </label>
+                <div class="relative">
+                    <input id="filter-phone" type="text"
+                           placeholder="Введите номер"
+                           class="w-full pl-3 pr-10 py-2.5 rounded-lg border border-secondary-300 dark:border-secondary-600 bg-secondary-50 dark:bg-secondary-900 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition">
+                    <button class="clear-btn absolute right-3 top-3 text-secondary-400 hover:text-secondary-600 transition" data-input="filter-phone">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Call Type Filter -->
+            <div>
+                <label class="block mb-2 text-sm font-medium flex items-center gap-2">
+                    <i class="fas fa-phone-alt text-secondary-400"></i>
+                    Тип звонка
+                </label>
+                <div class="grid grid-cols-2 gap-2">
+                    <button data-type="INCOMING" class="filter-type-btn px-3 py-2 rounded-lg border border-secondary-300 dark:border-secondary-600 bg-secondary-50 dark:bg-secondary-900 hover:bg-primary-50 dark:hover:bg-primary-900/20 hover:border-primary-300 dark:hover:border-primary-500 flex items-center justify-center gap-2">
+                        <i class="fas fa-phone-incoming text-green-500"></i>
+                        <span>Входящий</span>
+                    </button>
+                    <button data-type="OUTGOING" class="filter-type-btn px-3 py-2 rounded-lg border border-secondary-300 dark:border-secondary-600 bg-secondary-50 dark:bg-secondary-900 hover:bg-primary-50 dark:hover:bg-primary-900/20 hover:border-primary-300 dark:hover:border-primary-500 flex items-center justify-center gap-2">
+                        <i class="fas fa-phone-outgoing text-blue-500"></i>
+                        <span>Исходящий</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- My Numbers Filter -->
+            <div>
+                <label class="block mb-2 text-sm font-medium flex items-center gap-2">
+                    <i class="fas fa-user-check text-secondary-400"></i>
+                    Мои номера
+                </label>
+                <div id="my-numbers" class="space-y-2">
+                    <!-- Checkboxes will be populated dynamically -->
+                    <div class="text-center py-2 text-secondary-500" id="loading-numbers">
+                        <i class="fas fa-spinner fa-spin"></i> Загрузка номеров...
+                    </div>
+                </div>
+            </div>
+
+            <!-- Date Range Filter -->
+            <div>
+                <label class="block mb-2 text-sm font-medium flex items-center gap-2">
+                    <i class="fas fa-calendar-alt text-secondary-400"></i>
+                    Период
+                </label>
+                <div class="space-y-3">
+                    <div class="flex gap-2">
+                        <input id="filter-date-from" type="date"
+                               class="w-full px-3 py-2.5 rounded-lg border border-secondary-300 dark:border-secondary-600 bg-secondary-50 dark:bg-secondary-900 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition">
+                        <input id="filter-date-to" type="date"
+                               class="w-full px-3 py-2.5 rounded-lg border border-secondary-300 dark:border-secondary-600 bg-secondary-50 dark:bg-secondary-900 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition">
+                    </div>
+                    <div class="flex flex-wrap gap-2">
+                        <button id="date-today" class="px-3 py-2 text-sm rounded-lg border border-secondary-300 dark:border-secondary-600 bg-secondary-50 dark:bg-secondary-900 hover:bg-primary-50 dark:hover:bg-primary-900/20 hover:border-primary-300 dark:hover:border-primary-500 transition">
+                            Сегодня
+                        </button>
+                        <button id="date-week" class="px-3 py-2 text-sm rounded-lg border border-secondary-300 dark:border-secondary-600 bg-secondary-50 dark:bg-secondary-900 hover:bg-primary-50 dark:hover:bg-primary-900/20 hover:border-primary-300 dark:hover:border-primary-500 transition">
+                            Неделя
+                        </button>
+                        <button id="date-month" class="px-3 py-2 text-sm rounded-lg border border-secondary-300 dark:border-secondary-600 bg-secondary-50 dark:bg-secondary-900 hover:bg-primary-50 dark:hover:bg-primary-900/20 hover:border-primary-300 dark:hover:border-primary-500 transition">
+                            Месяц
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Advanced Filters Toggle -->
+            <button id="toggle-advanced" class="w-full px-3 py-2.5 rounded-lg border border-secondary-300 dark:border-secondary-600 bg-secondary-50 dark:bg-secondary-900 hover:bg-primary-50 dark:hover:bg-primary-900/20 hover:border-primary-300 dark:hover:border-primary-500 flex items-center justify-center gap-2 transition">
+                <i class="fas fa-chevron-down text-secondary-400"></i>
+                <span class="text-sm font-medium">Расширенные фильтры</span>
+            </button>
+
+            <!-- Advanced Filters -->
+            <div id="advanced-filters" class="space-y-6 hidden">
+                <!-- Price per Minute -->
+                <div>
+                    <label class="block mb-2 text-sm font-medium flex items-center gap-2">
+                        <i class="fas fa-tag text-secondary-400"></i>
+                        Цена за минуту
+                    </label>
+                    <div class="flex items-center gap-2">
+                        <input id="filter-price" type="range" min="0" max="2" step="0.05" value="1"
+                               class="w-full h-2 bg-secondary-200 dark:bg-secondary-700 rounded-lg appearance-none cursor-pointer">
+                        <span id="price-value" class="text-sm font-medium w-12">1.00 ₽</span>
+                    </div>
+                </div>
+
+                <!-- Cost Range -->
+                <div>
+                    <label class="block mb-2 text-sm font-medium flex items-center gap-2">
+                        <i class="fas fa-money-bill-wave text-secondary-400"></i>
+                        Стоимость звонка
+                    </label>
+                    <div class="space-y-3">
+                        <div class="flex items-center gap-2">
+                            <input id="filter-cost-min" type="number" step="0.01" min="0" placeholder="От"
+                                   class="w-full px-3 py-2.5 rounded-lg border border-secondary-300 dark:border-secondary-600 bg-secondary-50 dark:bg-secondary-900 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition">
+                            <span class="text-secondary-500">₽</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <input id="filter-cost-max" type="number" step="0.01" min="0" placeholder="До"
+                                   class="w-full px-3 py-2.5 rounded-lg border border-secondary-300 dark:border-secondary-600 bg-secondary-50 dark:bg-secondary-900 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition">
+                            <span class="text-secondary-500">₽</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="pt-4 border-t border-secondary-200 dark:border-secondary-700 space-y-3">
+                <button id="apply-filters"
+                        class="w-full px-4 py-3 rounded-lg bg-primary-600 text-white hover:bg-primary-700 flex items-center justify-center gap-2 transition">
+                    <i class="fas fa-check"></i>
+                    Применить фильтры
+                </button>
+                <button id="reset-filters"
+                        class="w-full px-4 py-3 rounded-lg border border-secondary-300 dark:border-secondary-600 hover:bg-secondary-100 dark:hover:bg-secondary-700 flex items-center justify-center gap-2 transition">
+                    <i class="fas fa-redo"></i>
+                    Сбросить всё
+                </button>
+            </div>
+        </div>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <main class="flex-1 p-4 md:p-6">
+        <!-- Header with mobile filter button -->
+        <div class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+            <div>
+                <h2 class="text-2xl font-bold">История звонков</h2>
+                <p class="text-secondary-500 dark:text-secondary-400 text-sm mt-1">
+                    Всего <span id="total-calls" class="font-bold text-primary-600">0</span> записей
+                </p>
+            </div>
+
+            <!-- Mobile Filter Button -->
+            <button id="toggle-filters-mobile" class="lg:hidden px-4 py-2.5 rounded-lg bg-primary-600 text-white hover:bg-primary-700 flex items-center gap-2 transition">
+                <i class="fas fa-filter"></i>
+                Фильтры и сортировка
+            </button>
+        </div>
+
+        <!-- Calls Table -->
+        <div class="bg-white dark:bg-secondary-800 shadow-card rounded-xl overflow-hidden animate-fade-in">
             <div class="overflow-x-auto">
-                <table class="w-full text-sm" id="calls-table">
+                <table class="w-full text-sm">
                     <thead>
                     <tr class="border-b border-secondary-200 dark:border-secondary-700 text-xs uppercase text-secondary-500 dark:text-secondary-400">
                         <th class="py-4 px-4 font-medium text-left">Ваш телефон</th>
@@ -246,9 +527,53 @@
                     </tbody>
                 </table>
             </div>
+
+            <!-- Empty state -->
+            <div id="empty-state" class="hidden p-8 text-center">
+                <div class="w-16 h-16 rounded-full bg-secondary-100 dark:bg-secondary-700 flex items-center justify-center mx-auto mb-4">
+                    <i class="fas fa-phone-slash text-secondary-400 text-2xl"></i>
+                </div>
+                <h3 class="text-lg font-medium mb-2">Нет данных для отображения</h3>
+                <p class="text-secondary-500 dark:text-secondary-400 mb-6">Измените параметры фильтров, чтобы увидеть записи</p>
+                <button id="reset-filters-empty" class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700">
+                    Сбросить фильтры
+                </button>
+            </div>
+
+            <!-- Table Footer -->
+            <div id="pagination-container" class="border-t border-secondary-200 dark:border-secondary-700 p-4 flex flex-col md:flex-row justify-between items-center">
+                <!-- Pagination will be rendered here -->
+            </div>
         </div>
-    </div>
+
+        <!-- Summary Card -->
+        <div class="mt-6 bg-gradient-to-r from-primary-600 to-accent-600 rounded-xl p-5 text-white shadow-card hidden" id="summary-card">
+            <div class="flex flex-col md:flex-row justify-between items-center">
+                <div>
+                    <h3 class="text-lg font-bold mb-1">Итоги за период</h3>
+                    <p class="text-primary-100">На основе текущих фильтров</p>
+                </div>
+                <div class="flex flex-wrap gap-6 mt-4 md:mt-0">
+                    <div class="text-center">
+                        <p class="text-2xl font-bold" id="summary-calls">0</p>
+                        <p class="text-primary-200 text-sm">Звонков</p>
+                    </div>
+                    <div class="text-center">
+                        <p class="text-2xl font-bold" id="summary-duration">00:00</p>
+                        <p class="text-primary-200 text-sm">Минут</p>
+                    </div>
+                    <div class="text-center">
+                        <p class="text-2xl font-bold" id="summary-cost">0.00 ₽</p>
+                        <p class="text-primary-200 text-sm">Стоимость</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
 </div>
+
+<!-- Mobile Filter Overlay -->
+<div id="mobile-filter-overlay" class="fixed inset-0 bg-black/50 z-40 hidden"></div>
 
 <!-- User Details Modal -->
 <div id="userDetailsModal" class="fixed inset-0 bg-black/50 hidden z-50">
@@ -257,7 +582,8 @@
             <div class="p-6">
                 <h3 class="text-lg font-bold mb-4">Детали абонента</h3>
                 <div class="text-center mb-6">
-                    <img id="avatar" src="" alt="Avatar" class="avatar-large mx-auto border-4 border-primary-100 dark:border-primary-800">
+                    <img id="avatar" src="" alt="Avatar" class="avatar-large mx-auto border-4 border-primary-100 dark:border-primary-800 hidden">
+                    <div id="avatar-fallback" class="avatar-fallback-large mx-auto border-4 border-primary-100 dark:border-primary-800 flex items-center justify-center text-white font-bold text-2xl"></div>
                 </div>
                 <div class="space-y-3">
                     <div class="flex justify-between">
@@ -403,12 +729,15 @@
     </div>
 </div>
 
-
 <script>
     const csrfToken = document.querySelector('meta[name="_csrf"]') ? document.querySelector('meta[name="_csrf"]').getAttribute('content') : null;
     const csrfHeader = document.querySelector('meta[name="_csrf_header"]') ? document.querySelector('meta[name="_csrf_header"]').getAttribute('content') : null;
-
     let currentPage = 0;
+    let currentFilters = {};
+    let sortField = "date";
+    let sortDirection = "desc";
+    let currentTypeFilter = "";
+    let isInitialLoad = true;
 
     function getHeaders() {
         const headers = { 'Content-Type': 'application/json' };
@@ -418,10 +747,87 @@
         return headers;
     }
 
+    // Helper functions
+    function $(id) {
+        return document.getElementById(id);
+    }
+
+    function formatPhone(phone) {
+        return phone.replace(/(\+\d{3}) \((\d{2})\) (\d{3})-(\d{2})-(\d{2})/, '$1 $2 $3 $4 $5');
+    }
+
+    function normalize(str) {
+        return str.toLowerCase().replace(/\s+/g, "").replace(/[()-]/g, "");
+    }
+
+    function fuzzyMatch(input, target) {
+        input = normalize(input);
+        target = normalize(target);
+        if (!input) return true;
+        if (target.includes(input)) return true;
+        let mismatches = 0;
+        for (let i = 0; i < Math.min(input.length, target.length); i++) {
+            if (input[i] !== target[i]) mismatches++;
+            if (mismatches > 1) return false;
+        }
+        return true;
+    }
+
+    function durationToSeconds(d) {
+        if (!d) return 0;
+        const parts = d.split(':');
+        if (parts.length === 3) {
+            const [h, m, s] = parts.map(Number);
+            return h * 3600 + m * 60 + s;
+        } else if (parts.length === 2) {
+            const [m, s] = parts.map(Number);
+            return m * 60 + s;
+        }
+        return 0;
+    }
+
+    function secondsToDuration(s) {
+        const hours = Math.floor(s / 3600);
+        const minutes = Math.floor((s % 3600) / 60);
+        const seconds = s % 60;
+        if (hours > 0) {
+            return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        }
+        return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    }
+
+    function formatDate(dateStr) {
+        const date = new Date(dateStr);
+        return date.toLocaleDateString('ru-RU', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit'
+        });
+    }
+
+    function getInitials(name) {
+        if (!name) return '??';
+        const parts = name.split(' ');
+        return parts.length > 1
+            ? `${parts[0][0]}${parts[1][0]}`.toUpperCase()
+            : name.substring(0, 2).toUpperCase();
+    }
+
     // Load calls data
-    async function loadCalls(page = 0) {
+    async function loadCalls(filters = {}, page = 0) {
         try {
             const params = new URLSearchParams();
+
+            if (filters.startDate) params.append('startDate', filters.startDate + 'T00:00:00');
+            if (filters.endDate) params.append('endDate', filters.endDate + 'T23:59:59');
+            if (filters.callType) params.append('callType', filters.callType);
+            if (filters.name) params.append('name', filters.name);
+            if (filters.phone) params.append('phone', filters.phone);
+            if (filters.sortBy) params.append('sortBy', filters.sortBy);
+            if (filters.sortDir) params.append('sortDir', filters.sortDir);
             params.append('page', page);
             params.append('size', 10);
 
@@ -436,7 +842,25 @@
                 const data = await response.json();
                 renderCallsTable(data.calls);
                 renderPagination(data);
+                updateSummary(data.calls);
                 currentPage = data.currentPage;
+
+                // Show/hide empty state
+                const emptyState = $('empty-state');
+                const tbody = $('calls-tbody');
+                const summaryCard = $('summary-card');
+
+                if (data.calls && data.calls.length > 0) {
+                    emptyState.classList.add('hidden');
+                    tbody.classList.remove('hidden');
+                    summaryCard.classList.remove('hidden');
+                } else {
+                    emptyState.classList.remove('hidden');
+                    tbody.classList.add('hidden');
+                    summaryCard.classList.add('hidden');
+                }
+
+                isInitialLoad = false;
             } else {
                 console.error('Failed to load calls');
             }
@@ -446,37 +870,42 @@
     }
 
     function renderCallsTable(calls) {
-        const tbody = document.getElementById('calls-tbody');
+        const tbody = $('calls-tbody');
         tbody.innerHTML = '';
 
         calls.forEach(call => {
             const row = document.createElement('tr');
-            row.className = 'hover:bg-secondary-50 dark:hover:bg-secondary-800/50 transition-colors';
+            row.className = 'table-row-hover hover:bg-secondary-50 dark:hover:bg-secondary-800/50 transition-colors';
 
             // Format call time
-            const callTime = new Date(call.callTime).toLocaleString('ru-RU', {
-                day: '2-digit',
-                month: '2-digit',
-                year: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit',
-                second: '2-digit'
-            });
+            const callTime = formatDate(call.callTime);
 
             row.innerHTML = `
-                <td class="py-4 px-4">${call.userPhone}</td>
-                <td class="py-4 px-4">${call.otherPartyName}</td>
-                <td class="py-4 px-4">${call.otherPartyPhone}</td>
+                <td class="py-4 px-4 font-medium">${call.userPhone || 'Не указан'}</td>
+                <td class="py-4 px-4">
+                    <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-full bg-primary-500 flex items-center justify-center text-white text-xs font-bold">
+                            ${getInitials(call.otherPartyName)}
+                        </div>
+                        <div>
+                            <div class="font-medium">${call.otherPartyName || 'Не указано'}</div>
+                        </div>
+                    </div>
+                </td>
+                <td class="py-4 px-4">${call.otherPartyPhone || 'Не указан'}</td>
                 <td class="py-4 px-4">
                     <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium ${call.type === "INCOMING" ? "status-incoming" : "status-outgoing"}">
                         <i class="fas ${call.type === "INCOMING" ? "fa-phone-incoming" : "fa-phone-outgoing"}"></i>
                         ${call.type === "INCOMING" ? "Входящий" : "Исходящий"}
                     </div>
                 </td>
-                <td class="py-4 px-4">${call.duration}</td>
-                <td class="py-4 px-4">${callTime}</td>
-                <td class="py-4 px-4">${call.tariff} ₽</td>
-                <td class="py-4 px-4 font-medium">${call.cost} ₽</td>
+                <td class="py-4 px-4 font-medium">${call.duration || '00:00'}</td>
+                <td class="py-4 px-4">
+                    <div class="font-medium">${callTime.split(',')[0]}</div>
+                    <div class="text-secondary-500 text-xs">${callTime.split(',')[1]}</div>
+                </td>
+                <td class="py-4 px-4">${call.tariff || '0.00'} ₽</td>
+                <td class="py-4 px-4 font-bold">${call.cost || '0.00'} ₽</td>
                 <td class="py-4 px-4">
                     <button class="px-3 py-1.5 bg-primary-600 text-white text-sm rounded-lg hover:bg-primary-700 transition" data-phone="${call.otherPartyPhone}" onclick="showUserDetails(this)">Подробности</button>
                 </td>
@@ -486,48 +915,157 @@
         });
     }
 
-    function renderPagination(data) {
-        const paginationContainer = document.getElementById('pagination-container');
-        if (!paginationContainer) {
-            // Create pagination container if it doesn't exist
-            const container = document.querySelector('.bg-white.dark\\:bg-secondary-800.shadow-card.rounded-xl.overflow-hidden.animate-fade-in');
-            const paginationDiv = document.createElement('div');
-            paginationDiv.id = 'pagination-container';
-            paginationDiv.className = 'p-6 border-t border-secondary-200 dark:border-secondary-700 flex justify-between items-center';
-            container.appendChild(paginationDiv);
+    function updateSummary(calls) {
+        if (!calls || calls.length === 0) {
+            $('summary-calls').textContent = '0';
+            $('summary-duration').textContent = '00:00';
+            $('summary-cost').textContent = '0.00 ₽';
+            $('total-calls').textContent = '0';
+            return;
         }
+
+        let totalCalls = calls.length;
+        let totalDuration = 0;
+        let totalCost = 0;
+
+        calls.forEach(call => {
+            totalDuration += durationToSeconds(call.duration);
+            totalCost += parseFloat(call.cost) || 0;
+        });
+
+        $('summary-calls').textContent = totalCalls;
+        $('summary-duration').textContent = secondsToDuration(totalDuration);
+        $('summary-cost').textContent = totalCost.toFixed(2) + ' ₽';
+        $('total-calls').textContent = totalCalls;
+    }
+
+    function renderPagination(data) {
+        const paginationContainer = $('pagination-container');
+        if (!paginationContainer) return;
 
         const { currentPage, totalPages, totalElements, hasNext, hasPrevious } = data;
 
-        document.getElementById('pagination-container').innerHTML = `
-            <div class="text-sm text-secondary-600 dark:text-secondary-400">
-                Показано ${currentPage * 10 + 1}-${Math.min((currentPage + 1) * 10, totalElements)} из ${totalElements} звонков
+        paginationContainer.innerHTML = `
+            <div class="text-sm text-secondary-500 dark:text-secondary-400 mb-3 md:mb-0">
+                Показано <span class="font-medium text-secondary-800 dark:text-secondary-200">${currentPage * 10 + 1}-${Math.min((currentPage + 1) * 10, totalElements)}</span> из <span class="font-medium text-secondary-800 dark:text-secondary-200">${totalElements}</span> записей
             </div>
-            <div class="flex gap-2">
-                <button id="prev-page" class="px-3 py-2 bg-secondary-300 dark:bg-secondary-600 text-secondary-800 dark:text-secondary-100 rounded-lg hover:bg-secondary-400 dark:hover:bg-secondary-500 transition disabled:opacity-50 disabled:cursor-not-allowed" ${!hasPrevious ? 'disabled' : ''}>
-                    <i class="fas fa-chevron-left"></i> Предыдущая
+            <div class="flex items-center gap-2">
+                <button id="prev-page" class="p-2 rounded-lg hover:bg-secondary-100 dark:hover:bg-secondary-700 disabled:opacity-50 disabled:cursor-not-allowed" ${!hasPrevious ? 'disabled' : ''}>
+                    <i class="fas fa-chevron-left"></i>
                 </button>
-                <span class="px-3 py-2 bg-primary-100 dark:bg-primary-900 text-primary-800 dark:text-primary-200 rounded-lg">
-                    Страница ${currentPage + 1} из ${totalPages}
-                </span>
-                <button id="next-page" class="px-3 py-2 bg-secondary-300 dark:bg-secondary-600 text-secondary-800 dark:text-secondary-100 rounded-lg hover:bg-secondary-400 dark:hover:bg-secondary-500 transition disabled:opacity-50 disabled:cursor-not-allowed" ${!hasNext ? 'disabled' : ''}>
-                    Следующая <i class="fas fa-chevron-right"></i>
+                <div class="flex gap-1">
+                    <button class="page-btn w-8 h-8 rounded-lg bg-primary-600 text-white">${currentPage + 1}</button>
+                </div>
+                <button id="next-page" class="p-2 rounded-lg hover:bg-secondary-100 dark:hover:bg-secondary-700 disabled:opacity-50 disabled:cursor-not-allowed" ${!hasNext ? 'disabled' : ''}>
+                    <i class="fas fa-chevron-right"></i>
                 </button>
             </div>
         `;
 
         // Add event listeners
-        document.getElementById('prev-page').addEventListener('click', () => {
+        $('prev-page').addEventListener('click', () => {
             if (hasPrevious) {
-                loadCalls(currentPage - 1);
+                loadCalls(currentFilters, currentPage - 1);
             }
         });
 
-        document.getElementById('next-page').addEventListener('click', () => {
+        $('next-page').addEventListener('click', () => {
             if (hasNext) {
-                loadCalls(currentPage + 1);
+                loadCalls(currentFilters, currentPage + 1);
             }
         });
+    }
+
+    function applyFilters() {
+        currentFilters = {
+            startDate: $('filter-date-from').value,
+            endDate: $('filter-date-to').value,
+            callType: currentTypeFilter,
+            name: $('filter-name').value.trim(),
+            phone: $('filter-phone').value.trim().replace(/\D/g, ""),
+            sortBy: sortField,
+            sortDir: sortDirection
+        };
+
+        // Add my numbers filter
+        const selectedNumbers = Array.from(document.querySelectorAll('.my-number-checkbox:checked')).map(cb => cb.value.replace(/\D/g, ""));
+        if (selectedNumbers.length > 0) {
+            currentFilters.myNumbers = selectedNumbers.join(',');
+        }
+
+        loadCalls(currentFilters, 0);
+    }
+
+    function resetFilters() {
+        $('filter-name').value = '';
+        $('filter-phone').value = '';
+        $('filter-date-from').value = '';
+        $('filter-date-to').value = '';
+        $('filter-price').value = '1';
+        $('price-value').textContent = '1.00 ₽';
+        $('filter-cost-min').value = '';
+        $('filter-cost-max').value = '';
+
+        // Reset type filter buttons
+        currentTypeFilter = '';
+        document.querySelectorAll('.filter-type-btn').forEach(b => {
+            b.classList.remove('bg-primary-100', 'dark:bg-primary-900/30', 'border-primary-300', 'dark:border-primary-500');
+            b.classList.add('bg-secondary-50', 'dark:bg-secondary-900');
+        });
+
+        // Reset my numbers checkboxes
+        document.querySelectorAll('.my-number-checkbox').forEach(cb => cb.checked = false);
+
+        // Reset sort
+        sortField = 'date';
+        sortDirection = 'desc';
+        document.querySelectorAll('.sort-btn').forEach(b => {
+            b.classList.remove('bg-primary-100', 'dark:bg-primary-900/30', 'border-primary-300', 'dark:border-primary-500');
+            b.classList.add('bg-secondary-50', 'dark:bg-secondary-900');
+        });
+        document.querySelector('.sort-btn[data-sort="date_desc"]').classList.remove('bg-secondary-50', 'dark:bg-secondary-900');
+        document.querySelector('.sort-btn[data-sort="date_desc"]').classList.add('bg-primary-100', 'dark:bg-primary-900/30', 'border-primary-300', 'dark:border-primary-500');
+
+        applyFilters();
+
+        // Close mobile filters if open
+        if (window.innerWidth < 1024) {
+            $('mobile-filter-overlay').classList.add('hidden');
+            $('filter-panel').classList.add('hidden');
+        }
+    }
+
+    // Load my numbers
+    async function loadMyNumbers() {
+        try {
+            const response = await fetch('/api/user/numbers', {
+                method: 'GET',
+                headers: getHeaders()
+            });
+
+            if (response.ok) {
+                const numbers = await response.json();
+                const myNumbersDiv = $('my-numbers');
+                myNumbersDiv.innerHTML = '';
+
+                numbers.forEach(num => {
+                    const label = document.createElement('label');
+                    label.className = 'flex items-center gap-2 cursor-pointer';
+                    label.innerHTML = `
+                        <input type="checkbox" value="${num.number}" class="my-number-checkbox">
+                        <span class="text-sm">${num.number}${num.primary ? ' (основной)' : ''}</span>
+                    `;
+                    myNumbersDiv.appendChild(label);
+                });
+
+                // Add event listeners to checkboxes
+                document.querySelectorAll('.my-number-checkbox').forEach(cb => {
+                    cb.addEventListener('change', applyFilters);
+                });
+            }
+        } catch (error) {
+            console.error('Error loading numbers:', error);
+        }
     }
 
     function showUserDetails(button) {
@@ -543,304 +1081,461 @@
                 return response.json();
             })
             .then(data => {
-                const avatarImg = document.getElementById('avatar');
+                const avatarImg = $('avatar');
+                const avatarFallback = $('avatar-fallback');
+
                 if (data.avatarPath) {
                     avatarImg.src = '/uploads/' + data.avatarPath;
-                    avatarImg.style.display = 'block';
+                    avatarImg.classList.remove('hidden');
+                    avatarFallback.classList.add('hidden');
                 } else {
-                    avatarImg.style.display = 'none';
+                    avatarImg.classList.add('hidden');
+                    avatarFallback.classList.remove('hidden');
+                    avatarFallback.textContent = getInitials(data.firstName + ' ' + data.lastName);
                 }
-                document.getElementById('firstName').textContent = data.firstName || '';
-                document.getElementById('lastName').textContent = data.lastName || '';
-                document.getElementById('middleName').textContent = data.middleName || '';
-                document.getElementById('phone').textContent = data.phone || '';
-                document.getElementById('publicContactInfo').textContent = data.publicContactInfo || 'Дополнительная информация отсутствует.';
-                document.getElementById('userDetailsModal').classList.remove('hidden');
+
+                $('firstName').textContent = data.firstName || 'Не указано';
+                $('lastName').textContent = data.lastName || 'Не указано';
+                $('middleName').textContent = data.middleName || 'Не указано';
+                $('phone').textContent = data.phone || 'Не указан';
+                $('publicContactInfo').textContent = data.publicContactInfo || 'Дополнительная информация отсутствует.';
+                $('userDetailsModal').classList.remove('hidden');
             })
             .catch(error => {
                 alert('Ошибка: ' + error.message);
             });
     }
 
-    // Profile menu
-    const profileTrigger = document.getElementById('profile-trigger');
-    const profileMenu = document.getElementById('profile-menu');
+    // Event Listeners
+    document.addEventListener('DOMContentLoaded', function() {
+        // Profile menu
+        const profileTrigger = $('profile-trigger');
+        const profileMenu = $('profile-menu');
 
-    profileTrigger.addEventListener('click', (e) => {
-        e.stopPropagation();
-        profileMenu.classList.toggle('hidden');
-    });
+        profileTrigger.addEventListener('click', (e) => {
+            e.stopPropagation();
+            profileMenu.classList.toggle('hidden');
+        });
 
-    document.addEventListener('click', () => {
-        profileMenu.classList.add('hidden');
-    });
+        document.addEventListener('click', () => {
+            profileMenu.classList.add('hidden');
+        });
 
-    // Tab switching functions
-    function showProfileTab() {
-        document.getElementById('profileTab').classList.add('border-primary-500', 'text-primary-600', 'dark:text-primary-400');
-        document.getElementById('profileTab').classList.remove('text-secondary-500');
-        document.getElementById('passwordTab').classList.remove('border-primary-500', 'text-primary-600', 'dark:text-primary-400');
-        document.getElementById('passwordTab').classList.add('text-secondary-500');
-        document.getElementById('deleteTab').classList.remove('border-primary-500', 'text-primary-600', 'dark:text-primary-400');
-        document.getElementById('deleteTab').classList.add('text-secondary-500');
-        document.getElementById('profileTabContent').classList.remove('hidden');
-        document.getElementById('passwordTabContent').classList.add('hidden');
-        document.getElementById('deleteTabContent').classList.add('hidden');
-    }
+        // Load initial data
+        loadCalls({}, 0);
+        loadMyNumbers();
 
-    function showPasswordTab() {
-        document.getElementById('passwordTab').classList.add('border-primary-500', 'text-primary-600', 'dark:text-primary-400');
-        document.getElementById('passwordTab').classList.remove('text-secondary-500');
-        document.getElementById('profileTab').classList.remove('border-primary-500', 'text-primary-600', 'dark:text-primary-400');
-        document.getElementById('profileTab').classList.add('text-secondary-500');
-        document.getElementById('deleteTab').classList.remove('border-primary-500', 'text-primary-600', 'dark:text-primary-400');
-        document.getElementById('deleteTab').classList.add('text-secondary-500');
-        document.getElementById('passwordTabContent').classList.remove('hidden');
-        document.getElementById('profileTabContent').classList.add('hidden');
-        document.getElementById('deleteTabContent').classList.add('hidden');
-    }
+        // Price slider
+        const priceSlider = $('filter-price');
+        const priceValue = $('price-value');
 
-    function showDeleteTab() {
-        document.getElementById('deleteTab').classList.add('border-primary-500', 'text-primary-600', 'dark:text-primary-400');
-        document.getElementById('deleteTab').classList.remove('text-secondary-500');
-        document.getElementById('profileTab').classList.remove('border-primary-500', 'text-primary-600', 'dark:text-primary-400');
-        document.getElementById('profileTab').classList.add('text-secondary-500');
-        document.getElementById('passwordTab').classList.remove('border-primary-500', 'text-primary-600', 'dark:text-primary-400');
-        document.getElementById('passwordTab').classList.add('text-secondary-500');
-        document.getElementById('deleteTabContent').classList.remove('hidden');
-        document.getElementById('profileTabContent').classList.add('hidden');
-        document.getElementById('passwordTabContent').classList.add('hidden');
-    }
+        priceSlider.addEventListener('input', function() {
+            priceValue.textContent = parseFloat(this.value).toFixed(2) + ' ₽';
+        });
 
-    // Tab event listeners
-    document.getElementById('profileTab').addEventListener('click', showProfileTab);
-    document.getElementById('passwordTab').addEventListener('click', showPasswordTab);
-    document.getElementById('deleteTab').addEventListener('click', showDeleteTab);
-
-    // Profile editing
-    document.getElementById('edit-profile-btn').addEventListener('click', async (e) => {
-        e.stopPropagation();
-        profileMenu.classList.add('hidden');
-
-        // Load current profile data
-        try {
-            const response = await fetch('/api/user/profile', {
-                method: 'GET',
-                headers: getHeaders()
+        // Clear buttons
+        document.querySelectorAll('.clear-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const inputId = this.getAttribute('data-input');
+                $(inputId).value = '';
+                if (!isInitialLoad) applyFilters();
             });
+        });
 
-            if (response.ok) {
-                const data = await response.json();
-                document.getElementById('editUsername').value = data.username || '';
-                document.getElementById('editFirstName').value = data.firstName || '';
-                document.getElementById('editLastName').value = data.lastName || '';
-                document.getElementById('editMiddleName').value = data.middleName || '';
-                document.getElementById('editPublicContactInfo').value = data.publicContactInfo || '';
+        // Type filter buttons
+        document.querySelectorAll('.filter-type-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const type = this.getAttribute('data-type');
 
-                // Load avatar
-                const avatarPreview = document.getElementById('avatarPreview');
-                if (data.avatarPath) {
-                    avatarPreview.innerHTML = `<img src="/uploads/${data.avatarPath}?t=${Date.now()}" class="w-full h-full rounded-full object-cover">`;
+                // Toggle active state
+                document.querySelectorAll('.filter-type-btn').forEach(b => {
+                    b.classList.remove('bg-primary-100', 'dark:bg-primary-900/30', 'border-primary-300', 'dark:border-primary-500');
+                    b.classList.add('bg-secondary-50', 'dark:bg-secondary-900');
+                });
+
+                if (currentTypeFilter === type) {
+                    currentTypeFilter = "";
                 } else {
-                    const initials = data.firstName && data.lastName ?
-                        data.firstName.charAt(0) + data.lastName.charAt(0) :
-                        data.username.substring(0, 2);
-                    avatarPreview.innerHTML = initials.toUpperCase();
+                    currentTypeFilter = type;
+                    this.classList.remove('bg-secondary-50', 'dark:bg-secondary-900');
+                    this.classList.add('bg-primary-100', 'dark:bg-primary-900/30', 'border-primary-300', 'dark:border-primary-500');
                 }
+
+                if (!isInitialLoad) applyFilters();
+            });
+        });
+
+        // Sort buttons
+        document.querySelectorAll('.sort-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const sortValue = this.getAttribute('data-sort');
+
+                // Remove active class from all buttons
+                document.querySelectorAll('.sort-btn').forEach(b => {
+                    b.classList.remove('bg-primary-100', 'dark:bg-primary-900/30', 'border-primary-300', 'dark:border-primary-500');
+                    b.classList.add('bg-secondary-50', 'dark:bg-secondary-900');
+                });
+
+                // Add active class to clicked button
+                this.classList.remove('bg-secondary-50', 'dark:bg-secondary-900');
+                this.classList.add('bg-primary-100', 'dark:bg-primary-900/30', 'border-primary-300', 'dark:border-primary-500');
+
+                if (sortValue.includes("date")) sortField = "date";
+                if (sortValue.includes("cost")) sortField = "cost";
+                if (sortValue.includes("duration")) sortField = "duration";
+
+                sortDirection = sortValue.endsWith("asc") ? "asc" : "desc";
+
+                currentFilters.sortBy = sortField;
+                currentFilters.sortDir = sortDirection;
+
+                if (!isInitialLoad) applyFilters();
+            });
+        });
+
+        // Apply filters button
+        $('apply-filters').addEventListener('click', applyFilters);
+
+        // Date quick buttons
+        const today = new Date();
+        const formatDateForInput = date => date.toISOString().split('T')[0];
+
+        $('date-today').addEventListener('click', () => {
+            const todayStr = formatDateForInput(today);
+            $('filter-date-from').value = todayStr;
+            $('filter-date-to').value = todayStr;
+            if (!isInitialLoad) applyFilters();
+        });
+
+        $('date-week').addEventListener('click', () => {
+            const monday = new Date(today);
+            monday.setDate(today.getDate() - today.getDay() + 1);
+            const sunday = new Date(monday);
+            sunday.setDate(monday.getDate() + 6);
+            $('filter-date-from').value = formatDateForInput(monday);
+            $('filter-date-to').value = formatDateForInput(sunday);
+            if (!isInitialLoad) applyFilters();
+        });
+
+        $('date-month').addEventListener('click', () => {
+            const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+            const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+            $('filter-date-from').value = formatDateForInput(firstDay);
+            $('filter-date-to').value = formatDateForInput(lastDay);
+            if (!isInitialLoad) applyFilters();
+        });
+
+        // Live filtering on input change
+        ['filter-name', 'filter-phone', 'filter-cost-min', 'filter-cost-max'].forEach(id => {
+            $(id).addEventListener('input', () => {
+                if (!isInitialLoad) applyFilters();
+            });
+        });
+
+        ['filter-date-from', 'filter-date-to'].forEach(id => {
+            $(id).addEventListener('change', () => {
+                if (!isInitialLoad) applyFilters();
+            });
+        });
+
+        priceSlider.addEventListener('input', () => {
+            if (!isInitialLoad) applyFilters();
+        });
+
+        // Reset filters
+        $('reset-filters').addEventListener('click', resetFilters);
+        $('reset-filters-empty').addEventListener('click', resetFilters);
+
+        // Toggle advanced filters
+        const toggleAdvancedBtn = $('toggle-advanced');
+        const advancedFilters = $('advanced-filters');
+
+        toggleAdvancedBtn.addEventListener('click', function() {
+            const isHidden = advancedFilters.classList.contains('hidden');
+            const toggleIcon = this.querySelector('i');
+
+            if (isHidden) {
+                advancedFilters.classList.remove('hidden');
+                toggleIcon.className = 'fas fa-chevron-up text-secondary-400';
+            } else {
+                advancedFilters.classList.add('hidden');
+                toggleIcon.className = 'fas fa-chevron-down text-secondary-400';
             }
-        } catch (error) {
-            console.error('Error loading profile:', error);
+        });
+
+        // Mobile filters toggle
+        const toggleFiltersBtn = $('toggle-filters-mobile');
+        const toggleFiltersClose = $('toggle-filters');
+        const mobileFilterOverlay = $('mobile-filter-overlay');
+        const filterPanel = $('filter-panel');
+
+        toggleFiltersBtn.addEventListener('click', function() {
+            filterPanel.classList.remove('hidden');
+            mobileFilterOverlay.classList.remove('hidden');
+            filterPanel.classList.add('animate-slide-in');
+        });
+
+        toggleFiltersClose.addEventListener('click', closeMobileFilters);
+        mobileFilterOverlay.addEventListener('click', closeMobileFilters);
+
+        function closeMobileFilters() {
+            filterPanel.classList.add('hidden');
+            mobileFilterOverlay.classList.add('hidden');
         }
 
-        document.getElementById('profileModal').classList.remove('hidden');
-        // Show profile tab by default
-        showProfileTab();
-    });
-
-
-    document.getElementById('cancelProfile').addEventListener('click', () => {
-        document.getElementById('profileModal').classList.add('hidden');
-    });
-
-    document.getElementById('closeProfileModal').addEventListener('click', () => {
-        document.getElementById('profileModal').classList.add('hidden');
-    });
-
-    document.getElementById('cancelPassword').addEventListener('click', () => {
-        document.getElementById('profileModal').classList.add('hidden');
-    });
-
-    // Delete account
-    document.getElementById('deleteAccountBtn').addEventListener('click', () => {
-        if (confirm('Вы уверены, что хотите удалить аккаунт? Это действие необратимо.')) {
-            const form = document.createElement('form');
-            form.method = 'POST';
-            form.action = '/profile/delete-account';
-            if (csrfToken && csrfHeader) {
-                const input = document.createElement('input');
-                input.type = 'hidden';
-                input.name = '_csrf';
-                input.value = csrfToken;
-                form.appendChild(input);
-            }
-            document.body.appendChild(form);
-            form.submit();
+        // Profile modal tabs
+        function showProfileTab() {
+            $('profileTab').classList.add('border-primary-500', 'text-primary-600', 'dark:text-primary-400');
+            $('profileTab').classList.remove('text-secondary-500');
+            $('passwordTab').classList.remove('border-primary-500', 'text-primary-600', 'dark:text-primary-400');
+            $('passwordTab').classList.add('text-secondary-500');
+            $('deleteTab').classList.remove('border-primary-500', 'text-primary-600', 'dark:text-primary-400');
+            $('deleteTab').classList.add('text-secondary-500');
+            $('profileTabContent').classList.remove('hidden');
+            $('passwordTabContent').classList.add('hidden');
+            $('deleteTabContent').classList.add('hidden');
         }
-    });
 
-    document.getElementById('closeUserDetails').addEventListener('click', () => {
-        document.getElementById('userDetailsModal').classList.add('hidden');
-    });
+        function showPasswordTab() {
+            $('passwordTab').classList.add('border-primary-500', 'text-primary-600', 'dark:text-primary-400');
+            $('passwordTab').classList.remove('text-secondary-500');
+            $('profileTab').classList.remove('border-primary-500', 'text-primary-600', 'dark:text-primary-400');
+            $('profileTab').classList.add('text-secondary-500');
+            $('deleteTab').classList.remove('border-primary-500', 'text-primary-600', 'dark:text-primary-400');
+            $('deleteTab').classList.add('text-secondary-500');
+            $('passwordTabContent').classList.remove('hidden');
+            $('profileTabContent').classList.add('hidden');
+            $('deleteTabContent').classList.add('hidden');
+        }
 
-    // Avatar upload
-    document.getElementById('changeAvatar').addEventListener('click', () => {
-        document.getElementById('avatarInput').click();
-    });
+        function showDeleteTab() {
+            $('deleteTab').classList.add('border-primary-500', 'text-primary-600', 'dark:text-primary-400');
+            $('deleteTab').classList.remove('text-secondary-500');
+            $('profileTab').classList.remove('border-primary-500', 'text-primary-600', 'dark:text-primary-400');
+            $('profileTab').classList.add('text-secondary-500');
+            $('passwordTab').classList.remove('border-primary-500', 'text-primary-600', 'dark:text-primary-400');
+            $('passwordTab').classList.add('text-secondary-500');
+            $('deleteTabContent').classList.remove('hidden');
+            $('profileTabContent').classList.add('hidden');
+            $('passwordTabContent').classList.add('hidden');
+        }
 
-    document.getElementById('avatarPreview').addEventListener('click', () => {
-        document.getElementById('avatarInput').click();
-    });
+        $('profileTab').addEventListener('click', showProfileTab);
+        $('passwordTab').addEventListener('click', showPasswordTab);
+        $('deleteTab').addEventListener('click', showDeleteTab);
 
-    document.getElementById('avatarInput').addEventListener('change', async (e) => {
-        const file = e.target.files[0];
-        if (file) {
-            // Preview
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                document.getElementById('avatarPreview').innerHTML = `<img src="${e.target.result}" class="w-full h-full rounded-full object-cover">`;
-            };
-            reader.readAsDataURL(file);
-
-            // Upload
-            const formData = new FormData();
-            formData.append('avatar', file);
+        // Profile editing
+        $('edit-profile-btn').addEventListener('click', async (e) => {
+            e.stopPropagation();
+            profileMenu.classList.add('hidden');
 
             try {
-                const response = await fetch('/api/user/avatar', {
-                    method: 'POST',
-                    headers: {
-                        [csrfHeader]: csrfToken
-                    },
-                    body: formData
+                const response = await fetch('/api/user/profile', {
+                    method: 'GET',
+                    headers: getHeaders()
                 });
 
                 if (response.ok) {
-                    console.log('Avatar uploaded successfully');
-                    // Update the profile avatar in header
-                    const userInitials = document.querySelector('#profile-trigger span');
-                    if (userInitials) {
-                        // Optionally reload the page or update avatar src
-                        location.reload(); // Simple way to refresh avatar
+                    const data = await response.json();
+                    $('editUsername').value = data.username || '';
+                    $('editFirstName').value = data.firstName || '';
+                    $('editLastName').value = data.lastName || '';
+                    $('editMiddleName').value = data.middleName || '';
+                    $('editPublicContactInfo').value = data.publicContactInfo || '';
+
+                    const avatarPreview = $('avatarPreview');
+                    if (data.avatarPath) {
+                        avatarPreview.innerHTML = `<img src="/uploads/${data.avatarPath}?t=${Date.now()}" class="w-full h-full rounded-full object-cover">`;
+                    } else {
+                        const initials = data.firstName && data.lastName ?
+                            data.firstName.charAt(0) + data.lastName.charAt(0) :
+                            data.username.substring(0, 2);
+                        avatarPreview.innerHTML = initials.toUpperCase();
                     }
-                } else {
-                    alert('Failed to upload avatar');
                 }
             } catch (error) {
-                console.error('Error uploading avatar:', error);
-                alert('Error uploading avatar');
+                console.error('Error loading profile:', error);
             }
-        }
-    });
 
-    // Profile form submission
-    document.getElementById('profileForm').addEventListener('submit', async (e) => {
-        e.preventDefault();
+            $('profileModal').classList.remove('hidden');
+            showProfileTab();
+        });
 
-        const formData = {
-            username: document.getElementById('editUsername').value.trim(),
-            firstName: document.getElementById('editFirstName').value.trim(),
-            lastName: document.getElementById('editLastName').value.trim(),
-            middleName: document.getElementById('editMiddleName').value.trim(),
-            publicContactInfo: document.getElementById('editPublicContactInfo').value.trim()
-        };
+        $('closeProfileModal').addEventListener('click', () => {
+            $('profileModal').classList.add('hidden');
+        });
 
-        try {
-            const response = await fetch('/api/user/profile', {
-                method: 'PUT',
-                headers: getHeaders(),
-                body: JSON.stringify(formData)
-            });
+        $('cancelProfile').addEventListener('click', () => {
+            $('profileModal').classList.add('hidden');
+        });
 
-            if (response.ok) {
-                alert('Профиль успешно обновлен');
-                document.getElementById('profileModal').classList.add('hidden');
-                location.reload(); // Reload to show updated data
-            } else {
-                let errorMessage = 'Ошибка обновления профиля';
-                try {
-                    const errorData = await response.json();
-                    if (errorData.errors && errorData.errors.length > 0) {
-                        errorMessage = errorData.errors[0];
-                    } else if (response.status === 400) {
-                        errorMessage = 'Проверьте правильность введённых данных';
-                    }
-                } catch (e) {
-                    // Response might not be JSON
-                    if (response.status === 400) {
-                        errorMessage = 'Неверные данные. Проверьте поля формы';
-                    }
+        $('cancelPassword').addEventListener('click', () => {
+            $('profileModal').classList.add('hidden');
+        });
+
+        // Delete account
+        $('deleteAccountBtn').addEventListener('click', () => {
+            if (confirm('Вы уверены, что хотите удалить аккаунт? Это действие необратимо.')) {
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = '/profile/delete-account';
+                if (csrfToken && csrfHeader) {
+                    const input = document.createElement('input');
+                    input.type = 'hidden';
+                    input.name = '_csrf';
+                    input.value = csrfToken;
+                    form.appendChild(input);
                 }
-                alert(errorMessage);
+                document.body.appendChild(form);
+                form.submit();
             }
-        } catch (error) {
-            console.error('Error updating profile:', error);
-            alert('Ошибка сети. Проверьте подключение к интернету');
-        }
-    });
+        });
 
-    // Password form submission
-    document.getElementById('passwordForm').addEventListener('submit', async (e) => {
-        e.preventDefault();
+        $('closeUserDetails').addEventListener('click', () => {
+            $('userDetailsModal').classList.add('hidden');
+        });
 
-        const currentPassword = document.getElementById('currentPassword').value;
-        const newPassword = document.getElementById('newPasswordField').value;
-        const confirmPassword = document.getElementById('confirmNewPassword').value;
+        // Avatar upload
+        $('changeAvatar').addEventListener('click', () => {
+            $('avatarInput').click();
+        });
 
-        if (newPassword !== confirmPassword) {
-            alert('Новый пароль и подтверждение не совпадают');
-            return;
-        }
+        $('avatarPreview').addEventListener('click', () => {
+            $('avatarInput').click();
+        });
 
-        const passwordData = {
-            currentPassword: currentPassword,
-            password: newPassword,
-            confirmPassword: confirmPassword
-        };
+        $('avatarInput').addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    $('avatarPreview').innerHTML = `<img src="${e.target.result}" class="w-full h-full rounded-full object-cover">`;
+                };
+                reader.readAsDataURL(file);
 
-        try {
-            const response = await fetch('/api/user/change-password', {
-                method: 'POST',
-                headers: getHeaders(),
-                body: JSON.stringify(passwordData)
-            });
+                const formData = new FormData();
+                formData.append('avatar', file);
 
-            if (response.ok) {
-                alert('Пароль успешно изменён');
-                document.getElementById('profileModal').classList.add('hidden');
-                // Clear form
-                document.getElementById('passwordForm').reset();
-            } else {
-                let errorMessage = 'Ошибка смены пароля';
                 try {
-                    const errorData = await response.json();
-                    if (errorData.errors && errorData.errors.length > 0) {
-                        errorMessage = errorData.errors[0];
-                    } else if (response.status === 400) {
-                        errorMessage = 'Неверный текущий пароль или данные';
-                    }
-                } catch (e) {
-                    // Response might not be JSON
-                }
-                alert(errorMessage);
-            }
-        } catch (error) {
-            console.error('Error changing password:', error);
-            alert('Ошибка сети. Проверьте подключение к интернету');
-        }
-    });
+                    const response = await fetch('/api/user/avatar', {
+                        method: 'POST',
+                        headers: {
+                            [csrfHeader]: csrfToken
+                        },
+                        body: formData
+                    });
 
-    // Load data on page load
-    document.addEventListener('DOMContentLoaded', () => loadCalls(0));
+                    if (response.ok) {
+                        console.log('Avatar uploaded successfully');
+                        location.reload();
+                    } else {
+                        alert('Failed to upload avatar');
+                    }
+                } catch (error) {
+                    console.error('Error uploading avatar:', error);
+                    alert('Error uploading avatar');
+                }
+            }
+        });
+
+        // Profile form submission
+        $('profileForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const formData = {
+                username: $('editUsername').value.trim(),
+                firstName: $('editFirstName').value.trim(),
+                lastName: $('editLastName').value.trim(),
+                middleName: $('editMiddleName').value.trim(),
+                publicContactInfo: $('editPublicContactInfo').value.trim()
+            };
+
+            try {
+                const response = await fetch('/api/user/profile', {
+                    method: 'PUT',
+                    headers: getHeaders(),
+                    body: JSON.stringify(formData)
+                });
+
+                if (response.ok) {
+                    alert('Профиль успешно обновлен');
+                    $('profileModal').classList.add('hidden');
+                    location.reload();
+                } else {
+                    let errorMessage = 'Ошибка обновления профиля';
+                    try {
+                        const errorData = await response.json();
+                        if (errorData.errors && errorData.errors.length > 0) {
+                            errorMessage = errorData.errors[0];
+                        } else if (response.status === 400) {
+                            errorMessage = 'Проверьте правильность введённых данных';
+                        }
+                    } catch (e) {
+                        if (response.status === 400) {
+                            errorMessage = 'Неверные данные. Проверьте поля формы';
+                        }
+                    }
+                    alert(errorMessage);
+                }
+            } catch (error) {
+                console.error('Error updating profile:', error);
+                alert('Ошибка сети. Проверьте подключение к интернету');
+            }
+        });
+
+        // Password form submission
+        $('passwordForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const currentPassword = $('currentPassword').value;
+            const newPassword = $('newPasswordField').value;
+            const confirmPassword = $('confirmNewPassword').value;
+
+            if (newPassword !== confirmPassword) {
+                alert('Новый пароль и подтверждение не совпадают');
+                return;
+            }
+
+            const passwordData = {
+                currentPassword: currentPassword,
+                password: newPassword,
+                confirmPassword: confirmPassword
+            };
+
+            try {
+                const response = await fetch('/api/user/change-password', {
+                    method: 'POST',
+                    headers: getHeaders(),
+                    body: JSON.stringify(passwordData)
+                });
+
+                if (response.ok) {
+                    alert('Пароль успешно изменён');
+                    $('profileModal').classList.add('hidden');
+                    $('passwordForm').reset();
+                } else {
+                    let errorMessage = 'Ошибка смены пароля';
+                    try {
+                        const errorData = await response.json();
+                        if (errorData.errors && errorData.errors.length > 0) {
+                            errorMessage = errorData.errors[0];
+                        } else if (response.status === 400) {
+                            errorMessage = 'Неверный текущий пароль или данные';
+                        }
+                    } catch (e) {
+                    }
+                    alert(errorMessage);
+                }
+            } catch (error) {
+                console.error('Error changing password:', error);
+                alert('Ошибка сети. Проверьте подключение к интернету');
+            }
+        });
+
+        // Set default active sort button
+        document.querySelector('.sort-btn[data-sort="date_desc"]').classList.remove('bg-secondary-50', 'dark:bg-secondary-900');
+        document.querySelector('.sort-btn[data-sort="date_desc"]').classList.add('bg-primary-100', 'dark:bg-primary-900/30', 'border-primary-300', 'dark:border-primary-500');
+    });
 </script>
 </body>
 </html>
