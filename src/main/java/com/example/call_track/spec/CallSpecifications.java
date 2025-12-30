@@ -36,34 +36,52 @@ public class CallSpecifications {
             Join<PhoneNumber, User> callerUser = callerPhone.join("user");
             Join<PhoneNumber, User> calleeUser = calleePhone.join("user");
 
-            // Фильтр: текущий пользователь — или вызывающий, или вызываемый
-            predicates.add(cb.or(
-                    cb.equal(callerUser, user),
-                    cb.equal(calleeUser, user)
-            ));
-
-            // Фильтр по имени (ищет по имени, фамилии и отчеству оппонента)
-            if (name != null && !name.isBlank()) {
-                String likeName = "%" + name.trim().toLowerCase() + "%";
-                Predicate otherPartyMatchCaller = cb.and(
-                        cb.notEqual(callerUser, user),
-                        cb.or(
-                                cb.like(cb.lower(callerUser.get("firstName")), likeName),
-                                cb.like(cb.lower(callerUser.get("lastName")), likeName),
-                                cb.like(cb.lower(callerUser.get("middleName")), likeName)
-                        ));
-                Predicate otherPartyMatchCallee = cb.and(
-                        cb.notEqual(calleeUser, user),
-                        cb.or(
-                                cb.like(cb.lower(calleeUser.get("firstName")), likeName),
-                                cb.like(cb.lower(calleeUser.get("lastName")), likeName),
-                                cb.like(cb.lower(calleeUser.get("middleName")), likeName)
-                        ));
-                predicates.add(cb.or(otherPartyMatchCaller, otherPartyMatchCallee));
+            // Фильтр: текущий пользователь — или вызывающий, или вызываемый (только если не админ)
+            if (user != null) {
+                predicates.add(cb.or(
+                        cb.equal(callerUser, user),
+                        cb.equal(calleeUser, user)
+                ));
             }
 
-            // Фильтр по номерам (показывать звонки, где номер пользователя в списке выбранных)
-            if (myNumbers != null && !myNumbers.isBlank()) {
+            // Фильтр по имени (ищет по имени, фамилии и отчеству оппонента или всех для админа)
+            if (name != null && !name.isBlank()) {
+                String likeName = "%" + name.trim().toLowerCase() + "%";
+                if (user != null) {
+                    // Для обычного пользователя — только оппонент
+                    Predicate otherPartyMatchCaller = cb.and(
+                            cb.notEqual(callerUser, user),
+                            cb.or(
+                                    cb.like(cb.lower(callerUser.get("firstName")), likeName),
+                                    cb.like(cb.lower(callerUser.get("lastName")), likeName),
+                                    cb.like(cb.lower(callerUser.get("middleName")), likeName)
+                            ));
+                    Predicate otherPartyMatchCallee = cb.and(
+                            cb.notEqual(calleeUser, user),
+                            cb.or(
+                                    cb.like(cb.lower(calleeUser.get("firstName")), likeName),
+                                    cb.like(cb.lower(calleeUser.get("lastName")), likeName),
+                                    cb.like(cb.lower(calleeUser.get("middleName")), likeName)
+                            ));
+                    predicates.add(cb.or(otherPartyMatchCaller, otherPartyMatchCallee));
+                } else {
+                    // Для админа — поиск по всем участникам звонка
+                    Predicate callerMatch = cb.or(
+                            cb.like(cb.lower(callerUser.get("firstName")), likeName),
+                            cb.like(cb.lower(callerUser.get("lastName")), likeName),
+                            cb.like(cb.lower(callerUser.get("middleName")), likeName)
+                    );
+                    Predicate calleeMatch = cb.or(
+                            cb.like(cb.lower(calleeUser.get("firstName")), likeName),
+                            cb.like(cb.lower(calleeUser.get("lastName")), likeName),
+                            cb.like(cb.lower(calleeUser.get("middleName")), likeName)
+                    );
+                    predicates.add(cb.or(callerMatch, calleeMatch));
+                }
+            }
+
+            // Фильтр по номерам (показывать звонки, где номер пользователя в списке выбранных) — только для обычных пользователей
+            if (user != null && myNumbers != null && !myNumbers.isBlank()) {
                 List<String> nums = Arrays.stream(myNumbers.split(","))
                         .map(String::trim)
                         .filter(s -> !s.isEmpty())
@@ -76,16 +94,21 @@ public class CallSpecifications {
                 }
             }
 
-            // Фильтр по телефону оппонента (абонента)
+            // Фильтр по телефону оппонента (абонента) или всем для админа
             if (phone != null && !phone.isBlank()) {
                 String likePhone = "%" + phone.trim() + "%";
-                Predicate callerIsOther = cb.and(cb.notEqual(callerUser, user), cb.like(callerPhone.get("phone"), likePhone));
-                Predicate calleeIsOther = cb.and(cb.notEqual(calleeUser, user), cb.like(calleePhone.get("phone"), likePhone));
-                predicates.add(cb.or(callerIsOther, calleeIsOther));
+                if (user != null) {
+                    Predicate callerIsOther = cb.and(cb.notEqual(callerUser, user), cb.like(callerPhone.get("phone"), likePhone));
+                    Predicate calleeIsOther = cb.and(cb.notEqual(calleeUser, user), cb.like(calleePhone.get("phone"), likePhone));
+                    predicates.add(cb.or(callerIsOther, calleeIsOther));
+                } else {
+                    // Для админа — поиск по любому телефону в звонке
+                    predicates.add(cb.or(cb.like(callerPhone.get("phone"), likePhone), cb.like(calleePhone.get("phone"), likePhone)));
+                }
             }
 
-            // Тип звонка (входящий или исходящий)
-            if (callType != null && !callType.isBlank()) {
+            // Тип звонка (входящий или исходящий) — только для обычных пользователей
+            if (user != null && callType != null && !callType.isBlank()) {
                 if (callType.equals("OUTGOING")) {
                     predicates.add(cb.equal(callerUser, user));
                 } else if (callType.equals("INCOMING")) {
