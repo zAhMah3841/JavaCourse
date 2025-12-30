@@ -24,7 +24,6 @@ public class CallService {
         return callRepository.save(call);
     }
 
-
     public Optional<Call> findById(UUID id) {
         return callRepository.findById(id);
     }
@@ -80,5 +79,29 @@ public class CallService {
     private BigDecimal calculateTotalCost(long durationSeconds, BigDecimal pricePerMinute) {
         BigDecimal durationMinutes = BigDecimal.valueOf(durationSeconds).divide(BigDecimal.valueOf(60), 2, BigDecimal.ROUND_UP);
         return durationMinutes.multiply(pricePerMinute);
+    }
+
+    /**
+     * Универсальный поиск вызовов пользователя с учетом всех возможных фильтров
+     */
+    public Page<Call> searchUserCalls(
+            User user,
+            String name, String myNumbers, String phone, String callType,
+            String startDate, String endDate,
+            String sortBy, String sortDir,
+            BigDecimal minCost, BigDecimal maxCost,
+            BigDecimal pricePerMinute, BigDecimal minPrice, BigDecimal maxPrice,
+            Pageable pageable
+    ) {
+        return callRepository.findAll(
+                com.example.call_track.spec.CallSpecifications.filterAll(
+                        user, name, myNumbers, phone, callType, startDate, endDate, minCost, maxCost, pricePerMinute, minPrice, maxPrice
+                ),
+                org.springframework.data.domain.PageRequest.of(
+                        pageable.getPageNumber(),
+                        pageable.getPageSize(),
+                        com.example.call_track.spec.CallSpecifications.buildSort(sortBy, sortDir)
+                )
+        );
     }
 }

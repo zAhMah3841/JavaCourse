@@ -63,24 +63,43 @@ public class CallsController extends BaseController {
     @GetMapping("/api/calls")
     public ResponseEntity<CallPageDto> getUserCalls(
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
-
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String name,
+            @RequestParam(required = false) String myNumbers,
+            @RequestParam(required = false) String phone,
+            @RequestParam(required = false) String callType,
+            @RequestParam(required = false) String startDate,
+            @RequestParam(required = false) String endDate,
+            @RequestParam(required = false) String sortBy,
+            @RequestParam(required = false) String sortDir,
+            @RequestParam(required = false) java.math.BigDecimal minCost,
+            @RequestParam(required = false) java.math.BigDecimal maxCost,
+            @RequestParam(required = false) java.math.BigDecimal pricePerMinute,
+            @RequestParam(required = false) java.math.BigDecimal minPrice,
+            @RequestParam(required = false) java.math.BigDecimal maxPrice
+    ) {
         User currentUser = userService.getCurrentAuthenticatedUser();
-
-        Pageable pageable = PageRequest.of(page, size);
-        Page<Call> callPage = callService.findByUser(currentUser, pageable);
+        org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(page, size);
+        // Прокидываем все фильтры дальше
+        org.springframework.data.domain.Page<Call> callPage = callService.searchUserCalls(
+                currentUser, name, myNumbers, phone,
+                callType, startDate, endDate,
+                sortBy, sortDir, minCost, maxCost,
+                pricePerMinute, minPrice, maxPrice, pageable
+        );
 
         List<CallDto> callDtos = callPage.getContent().stream().map(call -> {
             boolean isOutgoing = call.getCallerPhone().getUser().getId().equals(currentUser.getId());
             PhoneNumber otherPhone = isOutgoing ? call.getCalleePhone() : call.getCallerPhone();
             User otherUser = otherPhone.getUser();
-            String otherPartyName = otherUser.getFirstName() + " " + otherUser.getLastName() +
-                    (otherUser.getMiddleName() != null ? " " + otherUser.getMiddleName() : "");
+            String otherPartyName = (otherUser.getFirstName() != null ? otherUser.getFirstName() : "")
+                    + " " + (otherUser.getLastName() != null ? otherUser.getLastName() : "")
+                    + (otherUser.getMiddleName() != null ? " " + otherUser.getMiddleName() : "");
             String userPhone = isOutgoing ? call.getCallerPhone().getPhone() : call.getCalleePhone().getPhone();
             String type = isOutgoing ? "OUTGOING" : "INCOMING";
             String duration = String.format("%02d:%02d", call.getDurationSeconds() / 60, call.getDurationSeconds() % 60);
             return CallDto.builder()
-                    .otherPartyName(otherPartyName)
+                    .otherPartyName(otherPartyName.trim())
                     .otherPartyPhone(otherPhone.getPhone())
                     .userPhone(userPhone)
                     .type(type)

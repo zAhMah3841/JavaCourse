@@ -473,11 +473,6 @@
 
             <!-- Action Buttons -->
             <div class="pt-4 border-t border-secondary-200 dark:border-secondary-700 space-y-3">
-                <button id="apply-filters"
-                        class="w-full px-4 py-3 rounded-lg bg-primary-600 text-white hover:bg-primary-700 flex items-center justify-center gap-2 transition">
-                    <i class="fas fa-check"></i>
-                    Применить фильтры
-                </button>
                 <button id="reset-filters"
                         class="w-full px-4 py-3 rounded-lg border border-secondary-300 dark:border-secondary-600 hover:bg-secondary-100 dark:hover:bg-secondary-700 flex items-center justify-center gap-2 transition">
                     <i class="fas fa-redo"></i>
@@ -628,6 +623,7 @@
                 <!-- Tabs -->
                 <div class="flex border-b border-secondary-200 dark:border-secondary-700 mb-6">
                     <button id="profileTab" class="px-4 py-2 text-sm font-medium border-b-2 border-primary-500 text-primary-600 dark:text-primary-400">Информация профиля</button>
+                    <button id="phoneTab" class="px-4 py-2 text-sm font-medium text-secondary-500 hover:text-secondary-700 dark:hover:text-secondary-300">Номера телефонов</button>
                     <button id="passwordTab" class="px-4 py-2 text-sm font-medium text-secondary-500 hover:text-secondary-700 dark:hover:text-secondary-300">Смена пароля</button>
                     <button id="deleteTab" class="px-4 py-2 text-sm font-medium text-secondary-500 hover:text-secondary-700 dark:hover:text-secondary-300">Удаление аккаунта</button>
                 </div>
@@ -679,6 +675,31 @@
                             <button type="button" id="cancelProfile" class="px-6 py-3 bg-secondary-300 dark:bg-secondary-600 text-secondary-800 dark:text-secondary-100 rounded-lg hover:bg-secondary-400 dark:hover:bg-secondary-500 transition">Отмена</button>
                         </div>
                     </form>
+                </div>
+
+                <!-- Phone Numbers Tab -->
+                <div id="phoneTabContent" class="space-y-6 hidden">
+                    <div class="space-y-4">
+                        <h3 class="text-lg font-semibold">Ваши номера телефонов</h3>
+                        <div id="phoneNumbersList" class="space-y-3">
+                            <!-- Phone numbers will be loaded here -->
+                        </div>
+                        <div class="pt-4 border-t border-secondary-200 dark:border-secondary-700">
+                            <form id="addPhoneForm" class="space-y-3">
+                                <div>
+                                    <label class="block text-sm font-medium mb-1">Добавить новый номер</label>
+                                    <div class="flex gap-2">
+                                        <input type="text" id="newPhoneNumber" placeholder="+7 (999) 123-45-67" class="flex-1 px-3 py-2 rounded-lg border border-secondary-300 dark:border-secondary-600 bg-secondary-50 dark:bg-secondary-900 focus:ring-2 focus:ring-primary-500 transition text-sm" required>
+                                        <label class="flex items-center gap-2">
+                                            <input type="checkbox" id="newPhonePrimary" class="rounded">
+                                            <span class="text-sm">Основной</span>
+                                        </label>
+                                        <button type="submit" class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition text-sm">Добавить</button>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Password Tab -->
@@ -1038,7 +1059,7 @@
     // Load my numbers
     async function loadMyNumbers() {
         try {
-            const response = await fetch('/api/user/numbers', {
+            const response = await fetch('/api/user/phone-numbers', {
                 method: 'GET',
                 headers: getHeaders()
             });
@@ -1052,8 +1073,8 @@
                     const label = document.createElement('label');
                     label.className = 'flex items-center gap-2 cursor-pointer';
                     label.innerHTML = `
-                        <input type="checkbox" value="${num.number}" class="my-number-checkbox">
-                        <span class="text-sm">${num.number}${num.primary ? ' (основной)' : ''}</span>
+                        <input type="checkbox" value="${num.phone}" class="my-number-checkbox">
+                        <span class="text-sm">${num.phone}${num.isPrimary ? ' (основной)' : ''}</span>
                     `;
                     myNumbersDiv.appendChild(label);
                 });
@@ -1193,8 +1214,6 @@
             });
         });
 
-        // Apply filters button
-        $('apply-filters').addEventListener('click', applyFilters);
 
         // Date quick buttons
         const today = new Date();
@@ -1287,11 +1306,14 @@
         function showProfileTab() {
             $('profileTab').classList.add('border-primary-500', 'text-primary-600', 'dark:text-primary-400');
             $('profileTab').classList.remove('text-secondary-500');
+            $('phoneTab').classList.remove('border-primary-500', 'text-primary-600', 'dark:text-primary-400');
+            $('phoneTab').classList.add('text-secondary-500');
             $('passwordTab').classList.remove('border-primary-500', 'text-primary-600', 'dark:text-primary-400');
             $('passwordTab').classList.add('text-secondary-500');
             $('deleteTab').classList.remove('border-primary-500', 'text-primary-600', 'dark:text-primary-400');
             $('deleteTab').classList.add('text-secondary-500');
             $('profileTabContent').classList.remove('hidden');
+            $('phoneTabContent').classList.add('hidden');
             $('passwordTabContent').classList.add('hidden');
             $('deleteTabContent').classList.add('hidden');
         }
@@ -1301,11 +1323,30 @@
             $('passwordTab').classList.remove('text-secondary-500');
             $('profileTab').classList.remove('border-primary-500', 'text-primary-600', 'dark:text-primary-400');
             $('profileTab').classList.add('text-secondary-500');
+            $('phoneTab').classList.remove('border-primary-500', 'text-primary-600', 'dark:text-primary-400');
+            $('phoneTab').classList.add('text-secondary-500');
             $('deleteTab').classList.remove('border-primary-500', 'text-primary-600', 'dark:text-primary-400');
             $('deleteTab').classList.add('text-secondary-500');
             $('passwordTabContent').classList.remove('hidden');
             $('profileTabContent').classList.add('hidden');
+            $('phoneTabContent').classList.add('hidden');
             $('deleteTabContent').classList.add('hidden');
+        }
+
+        function showPhoneTab() {
+            $('phoneTab').classList.add('border-primary-500', 'text-primary-600', 'dark:text-primary-400');
+            $('phoneTab').classList.remove('text-secondary-500');
+            $('profileTab').classList.remove('border-primary-500', 'text-primary-600', 'dark:text-primary-400');
+            $('profileTab').classList.add('text-secondary-500');
+            $('passwordTab').classList.remove('border-primary-500', 'text-primary-600', 'dark:text-primary-400');
+            $('passwordTab').classList.add('text-secondary-500');
+            $('deleteTab').classList.remove('border-primary-500', 'text-primary-600', 'dark:text-primary-400');
+            $('deleteTab').classList.add('text-secondary-500');
+            $('phoneTabContent').classList.remove('hidden');
+            $('profileTabContent').classList.add('hidden');
+            $('passwordTabContent').classList.add('hidden');
+            $('deleteTabContent').classList.add('hidden');
+            loadUserPhoneNumbers();
         }
 
         function showDeleteTab() {
@@ -1313,16 +1354,123 @@
             $('deleteTab').classList.remove('text-secondary-500');
             $('profileTab').classList.remove('border-primary-500', 'text-primary-600', 'dark:text-primary-400');
             $('profileTab').classList.add('text-secondary-500');
+            $('phoneTab').classList.remove('border-primary-500', 'text-primary-600', 'dark:text-primary-400');
+            $('phoneTab').classList.add('text-secondary-500');
             $('passwordTab').classList.remove('border-primary-500', 'text-primary-600', 'dark:text-primary-400');
             $('passwordTab').classList.add('text-secondary-500');
             $('deleteTabContent').classList.remove('hidden');
             $('profileTabContent').classList.add('hidden');
+            $('phoneTabContent').classList.add('hidden');
             $('passwordTabContent').classList.add('hidden');
         }
 
         $('profileTab').addEventListener('click', showProfileTab);
+        $('phoneTab').addEventListener('click', showPhoneTab);
         $('passwordTab').addEventListener('click', showPasswordTab);
         $('deleteTab').addEventListener('click', showDeleteTab);
+
+        // Load user phone numbers
+        async function loadUserPhoneNumbers() {
+            try {
+                const response = await fetch('/api/user/phone-numbers', {
+                    method: 'GET',
+                    headers: getHeaders()
+                });
+
+                if (response.ok) {
+                    const phoneNumbers = await response.json();
+                    const listDiv = $('phoneNumbersList');
+                    listDiv.innerHTML = '';
+
+                    if (phoneNumbers.length === 0) {
+                        listDiv.innerHTML = '<p class="text-secondary-500 text-sm">У вас нет добавленных номеров телефонов.</p>';
+                        return;
+                    }
+
+                    phoneNumbers.forEach(phone => {
+                        const phoneDiv = document.createElement('div');
+                        phoneDiv.className = 'flex items-center justify-between p-3 bg-secondary-50 dark:bg-secondary-800 rounded-lg';
+                        phoneDiv.innerHTML = `
+                            <div class="flex items-center gap-3">
+                                <i class="fas fa-phone text-primary-500"></i>
+                                <div>
+                                    <div class="font-medium">${phone.phone}</div>
+                                    <div class="text-sm text-secondary-500">${phone.isPrimary ? 'Основной номер' : 'Дополнительный номер'}</div>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                ${!phone.isPrimary ? `<button class="px-3 py-1 text-sm bg-primary-600 text-white rounded hover:bg-primary-700 transition set-primary-btn" data-id="${phone.id}">Сделать основным</button>` : ''}
+                                <button class="px-3 py-1 text-sm bg-red-600 text-white rounded hover:bg-red-700 transition delete-phone-btn" data-id="${phone.id}">Удалить</button>
+                            </div>
+                        `;
+                        listDiv.appendChild(phoneDiv);
+                    });
+
+                    // Add event listeners to new buttons
+                    document.querySelectorAll('.set-primary-btn').forEach(btn => {
+                        btn.addEventListener('click', function() {
+                            const phoneId = this.getAttribute('data-id');
+                            setPrimaryPhone(phoneId);
+                        });
+                    });
+
+                    document.querySelectorAll('.delete-phone-btn').forEach(btn => {
+                        btn.addEventListener('click', function() {
+                            const phoneId = this.getAttribute('data-id');
+                            deletePhone(phoneId);
+                        });
+                    });
+                } else {
+                    console.error('Failed to load phone numbers');
+                }
+            } catch (error) {
+                console.error('Error loading phone numbers:', error);
+            }
+        }
+
+        // Set primary phone
+        async function setPrimaryPhone(phoneId) {
+            try {
+                const response = await fetch(`/api/user/phone-numbers/${phoneId}/primary`, {
+                    method: 'PUT',
+                    headers: getHeaders()
+                });
+
+                if (response.ok) {
+                    alert('Основной номер обновлен');
+                    loadUserPhoneNumbers();
+                    loadMyNumbers(); // Update the filter checkboxes
+                } else {
+                    alert('Ошибка обновления основного номера');
+                }
+            } catch (error) {
+                console.error('Error setting primary phone:', error);
+                alert('Ошибка сети');
+            }
+        }
+
+        // Delete phone
+        async function deletePhone(phoneId) {
+            if (!confirm('Вы уверены, что хотите удалить этот номер телефона?')) return;
+
+            try {
+                const response = await fetch(`/api/user/phone-numbers/${phoneId}`, {
+                    method: 'DELETE',
+                    headers: getHeaders()
+                });
+
+                if (response.ok) {
+                    alert('Номер телефона удален');
+                    loadUserPhoneNumbers();
+                    loadMyNumbers(); // Update the filter checkboxes
+                } else {
+                    alert('Ошибка удаления номера телефона');
+                }
+            } catch (error) {
+                console.error('Error deleting phone:', error);
+                alert('Ошибка сети');
+            }
+        }
 
         // Profile editing
         $('edit-profile-btn').addEventListener('click', async (e) => {
@@ -1528,6 +1676,46 @@
                 }
             } catch (error) {
                 console.error('Error changing password:', error);
+                alert('Ошибка сети. Проверьте подключение к интернету');
+            }
+        });
+
+        // Add phone form submission
+        $('addPhoneForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const phoneData = {
+                phone: $('newPhoneNumber').value.trim(),
+                isPrimary: $('newPhonePrimary').checked
+            };
+
+            try {
+                const response = await fetch('/api/user/phone-numbers', {
+                    method: 'POST',
+                    headers: getHeaders(),
+                    body: JSON.stringify(phoneData)
+                });
+
+                if (response.ok) {
+                    alert('Номер телефона добавлен');
+                    $('addPhoneForm').reset();
+                    loadUserPhoneNumbers();
+                    loadMyNumbers(); // Update the filter checkboxes
+                } else {
+                    let errorMessage = 'Ошибка добавления номера телефона';
+                    try {
+                        const errorData = await response.json();
+                        if (errorData.errors && errorData.errors.length > 0) {
+                            errorMessage = errorData.errors[0];
+                        } else if (response.status === 400) {
+                            errorMessage = 'Неверные данные номера телефона';
+                        }
+                    } catch (e) {
+                    }
+                    alert(errorMessage);
+                }
+            } catch (error) {
+                console.error('Error adding phone:', error);
                 alert('Ошибка сети. Проверьте подключение к интернету');
             }
         });

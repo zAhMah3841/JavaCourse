@@ -15,7 +15,7 @@ import java.util.List;
 import java.util.UUID;
 
 @Repository
-public interface CallRepository extends JpaRepository<Call, UUID> {
+public interface CallRepository extends JpaRepository<Call, UUID>, org.springframework.data.jpa.repository.JpaSpecificationExecutor<Call> {
     List<Call> findByCallerPhone(PhoneNumber callerPhone);
     List<Call> findByCalleePhone(PhoneNumber calleePhone);
     List<Call> findByCallerPhoneOrCalleePhone(PhoneNumber callerPhone, PhoneNumber calleePhone);
